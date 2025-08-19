@@ -48,7 +48,7 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
         print("Headers:", headers)
 
         # 3) Fixed response (same as Ex.1)
-        body = b"hello"
+        body = b"Denne body er 29 bits langt" + b"\r\n"
         headers_out = (
             b"HTTP/1.1 200 OK\r\n"
             b"Content-Type: text/plain\r\n"
