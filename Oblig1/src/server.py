@@ -39,30 +39,7 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
         make additional methods to organize the flow with which a request is handled by
         this method. But it all starts here!
         """
-        reqline = self.rfile.readline().decode("iso-8859-1").strip()
-
-        print("Request line:", reqline)
-
-        while True:
-            line = self.rfile.readline()
-            if not line or line == b"\r\n":
-                break
-
-        body = b"Hello from Erlings server \n"
-        headers = (
-                b"HTTP/1.1 200 OK\r\n"
-            b"Content-Type: text/plain\r\n"
-            b"Content-Length: " + str(len(body)).encode("ascii") + b"\r\n"
-            b"\r\n"
-            b"\r"
-        )
-
-        self.wfile.write(headers + body)
-
-# Har lagt dette til selv, usikker om nødvendig
-
-
-
+        self.wfile.write(b"HTTP/1.1 200 OK \r\n")
 
     
 
