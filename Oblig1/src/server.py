@@ -39,9 +39,42 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
         make additional methods to organize the flow with which a request is handled by
         this method. But it all starts here!
         """
-        self.wfile.write(b"HTTP/1.1 200 OK \r\n")
+        # 1) Request line
+        reqline = self.rfile.readline().decode("iso-8859-1").strip()
+        print("Request line:", reqline)
 
-    
+        # 2) Headers
+        headers = self._read_headers()
+        print("Headers:", headers)
+
+        # 3) Fixed response (same as Ex.1)
+        body = b"hello"
+        headers_out = (
+            b"HTTP/1.1 200 OK\r\n"
+            b"Content-Type: text/plain\r\n"
+            b"Content-Length: " + str(len(body)).encode("ascii") + b"\r\n"
+            b"\r\n"
+        )
+        self.wfile.write(headers_out + body)
+
+
+
+    def _read_headers(self):
+        """Read HTTP headers until blank line. Return dict with lowercased keys."""
+        headers = {}
+        while True:
+            line = self.rfile.readline()
+            if not line or line == b"\r\n":
+                break
+            # Decode and split only on the first colon
+            try:
+                k, v = line.decode("iso-8859-1").split(":", 1)
+            except ValueError:
+                # Malformed header line; ignore or log
+                continue
+            headers[k.strip().lower()] = v.strip()
+        return headers
+
 
 
 if __name__ == "__main__":
