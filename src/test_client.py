@@ -173,7 +173,7 @@ def test_post_to_test_file_should_return_correct_content_length():
         "Content-Length": len(msg),
     }
     if(os.path.exists(testfile)):
-        os.remove(testfile)"""  """
+        os.remove(testfile)
     client.request("POST", testfile, body=msg, headers=headers)
     expected_content_length = len(client.getresponse().read())
     with open(testfile, "rb") as infile:
