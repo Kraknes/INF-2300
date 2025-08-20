@@ -69,34 +69,34 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
         # print(f"[DBG] first 60 body bytes: {body[:60]!r}")
 
         # --- 4) Minimal route: only POST /test.txt for now
-        if method == "POST":
-            if path == "/test.txt":
+        if method == 'POST':
+            if path == '/test.txt' or path == "test.txt":
                 file_path = os.path.join(os.getcwd(), "test.txt")
-                try:
-                    with open(file_path, "ab") as f:
-                        f.write(body)
-                    with open(file_path, "rb") as f:
-                        data = f.read()
-                    print(f"[OK ] wrote {len(body)} bytes to {file_path}; file now {len(data)} bytes")
-                    return self._send(200, data, "text/plain")
-                except Exception as e:
-                    print("[ERR] writing file:", e)
-                    return self._send(500, b"Internal Server Error", "text/plain")
+                with open(file_path, "ab") as f:
+                    f.write(body)
+                with open(file_path, "rb") as f:
+                    data = f.read()
+                return self._send(200, data, "text/plain")
+            else:
+                status = 404
+                msg = f"ERROR {status} - Could not perform method: {method} on path: {path}\r\n"
             
-        if method == 'GET':
+        elif method == 'GET':
             if path == '/index.html' or path == '/':
                 with open('index.html', 'rb') as f: data= f.read()
                 return self._send(200, data, 'text/html')
-            if path == 'server.py' or path == '/server.py':
+            elif path == 'server.py' or path == '/server.py':
                 status = 403
                 msg = f"ERROR {status} - Forbidden resource - Forbidden to perform method: {method} on path: {path}\r\n"
-            if path == "../":
-
-                
+            elif path == "../README.md":
+                status = 403
+                msg = f"ERROR {status} - Forbidden resource - Forbidden to perform method: {method} on path: {path}\r\n"
             else:
                 status = 404
-                msg = msg = f"ERROR {status} - Not able to perform method: {method} on path: {path}\r\n"
-
+                msg = f"ERROR {status} - Not able to perform method: {method} on path: {path}\r\n"
+        else:
+            status = 404
+            msg = f"ERROR {status} - Not able to perform method: {method} on path: {path}\r\n"
         # --- 5) Fallback (still fixed response for other paths)
         return self._send(status, msg, 'text/plain')
 

@@ -1,1 +1,1 @@
-Test text 1 hey
+text=Simple test
