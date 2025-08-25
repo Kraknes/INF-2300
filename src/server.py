@@ -78,12 +78,12 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
                     data = f.read()
                 return self._send(200, data, "text/plain")
             else:
-                status = 404
+                status = 403
                 msg = f"ERROR {status} - Could not perform method: {method} on path: {path}\r\n"
             
         elif method == 'GET':
             if path == '/index.html' or path == '/':
-                with open('index.html', 'rb') as f: data= f.read()
+                with open('index.html', 'rb') as f: data= f.read() # AI SLOP
                 return self._send(200, data, 'text/html')
             elif path == 'server.py' or path == '/server.py':
                 status = 403
@@ -100,7 +100,7 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
         # --- 5) Fallback (still fixed response for other paths)
         return self._send(status, msg, 'text/plain')
 
-
+    # Må endre dette, veldig AI slop
     def _send(self, status, body, content_type):
         reasons = {200: "OK", 201: "Created", 400: "Bad Request", 403: "Forbidden", 404: "Not Found"}
         reason = reasons.get(status, "OK")
