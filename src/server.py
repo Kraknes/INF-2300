@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import socketserver
-import os
 
 
 """
@@ -34,94 +33,33 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
     finish() - Does nothing by default, but is called after handle() to do any
     necessary clean up after a request is handled.
     """
-
     def handle(self):
-        # --- 1) Request line
-        reqline = self.rfile.readline().decode("iso-8859-1").strip()
-        if not reqline:
-            print("Empty request line")
-            return
-        try:
-            method, path, version = reqline.split(" ", 2)
-        except ValueError:
-            print("Bad request line:", reqline)
-            return self._send(400, b"Bad Request", "text/plain")
+        """
+        This method is responsible for handling an http-request. You can, and should(!),
+        make additional methods to organize the flow with which a request is handled by
+        this method. But it all starts here!
+        """
+        req_string = self.rfile.readline()
+        print(req_string)
+        decode_string = req_string.decode()
 
-        # --- 2) Headers
-        headers = {}
-        while True:
-            line = self.rfile.readline()
-            if not line or line == b"\r\n":
-                break
-            if b":" not in line:
-                continue
-            k, v = line.decode("iso-8859-1").split(":", 1)
-            headers[k.strip().lower()] = v.strip()
-
-        # --- 3) Body (exactly Content-Length bytes)
-        clen = int(headers.get("content-length", "0") or 0)
-        body = self.rfile.read(clen) if clen > 0 else b""
-
-        # --- DEBUG LOGS (so we can see what's happening)
-        # print(f"[REQ] {method} {path} {version}")
-        # print(f"[HDR] content-length={clen}, content-type={headers.get('content-type')}")
-        # print(f"[DBG] cwd={os.getcwd()}")
-        # print(f"[DBG] first 60 body bytes: {body[:60]!r}")
-
-        # --- 4) Minimal route: only POST /test.txt for now
-        if method == 'POST':
-            if path == '/test.txt' or path == "test.txt":
-                file_path = os.path.join(os.getcwd(), "test.txt")
-                with open(file_path, "ab") as f:
-                    f.write(body)
-                with open(file_path, "rb") as f:
-                    data = f.read()
-                return self._send(200, data, "text/plain")
-            else:
-                status = 403
-                msg = f"ERROR {status} - Could not perform method: {method} on path: {path}\r\n"
-            
-        elif method == 'GET':
-            if path == '/index.html' or path == '/':
-                with open('index.html', 'rb') as f: data= f.read() # AI SLOP
-                return self._send(200, data, 'text/html')
-            elif path == 'server.py' or path == '/server.py':
-                status = 403
-                msg = f"ERROR {status} - Forbidden resource - Forbidden to perform method: {method} on path: {path}\r\n"
-            elif path == "../README.md":
-                status = 403
-                msg = f"ERROR {status} - Forbidden resource - Forbidden to perform method: {method} on path: {path}\r\n"
-            else:
-                status = 404
-                msg = f"ERROR {status} - Not able to perform method: {method} on path: {path}\r\n"
+        if "GET" in decode_string:
+            if "/" or "/index.html" in decode_string:
+                html_file = open("index.html", "rb")
+                html_file = html_file.read()
+                self.wfile.write(html_file)
         else:
-            status = 404
-            msg = f"ERROR {status} - Not able to perform method: {method} on path: {path}\r\n"
-        # --- 5) Fallback (still fixed response for other paths)
-        return self._send(status, msg, 'text/plain')
+            self.wfile.write(b"HTTP/1.1 200 OK \r\n")
 
-    # Må endre dette, veldig AI slop
-    def _send(self, status, body, content_type):
-        reasons = {200: "OK", 201: "Created", 400: "Bad Request", 403: "Forbidden", 404: "Not Found"}
-        reason = reasons.get(status, "OK")
-        if not isinstance(body, (bytes, bytearray)):
-            body = str(body).encode("utf-8")
-        head = (
-            f"HTTP/1.1 {status} {reason}\r\n"
-            f"Content-Type: {content_type}\r\n"
-            f"Content-Length: {len(body)}\r\n"
-            "\r\n"
-        ).encode("iso-8859-1")
-        self.wfile.write(head + body)
+        # test2 = self.rfile.readlines()
+        # print(test2)
 
 
 
-    def setup(self):
-        super().setup()
 
-    def finish(self):
-        super().finish()
 
+        self.wfile.write(b"HTTP/1.1 200 OK \r\n")
+        # self.wfile.close()
 
 
 
