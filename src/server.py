@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import socketserver
+import os
 
 
 """
@@ -44,6 +45,8 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
         req_string = self.rfile.readline()
         decode_string = req_string.decode()
         method, URIreq, version = decode_string.split(" ")
+        version = version.replace('\r\n','')
+        version = version.encode()
 
         if method == "GET":
             if URIreq == "/" or URIreq == "/index.html":
@@ -52,17 +55,39 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
                 ctype = b'text/html'
                 status = b'200'
                 response = b'OK'
-            elif URIreq == "/server.py" or "server.py":
+                self.send(version, data, ctype, status, response)
+            elif URIreq == '/server.py':
                 status = b'403'
                 response = b'Forbidden'
+                header = version + b" " + status + b" " + response + b"\r\n"
+                self.wfile.write(header)
             else:
                 status = b'404'
                 response = b'Not Found'
+                header = version + b" " + status + b" " + response + b"\r\n"
+                self.wfile.write(header)
+
+        elif method == 'POST':
+            if URIreq == '/test.txt':
+                text_file = os.path.join(os.getcwd(), "test.txt")
+                text_file = open(text_file, "ab")
+                pass
+            
+            else:
+                status = b'404'
+                response = b'Not Found'
+                header = version + b" " + status + b" " + response + b"\r\n"
+                self.wfile.write(header)
+        else:
+            status = b'404'
+            response = b'Not Found'
+            header = version + b" " + status + b" " + response + b"\r\n"
+            self.wfile.write(header)
 
         
                 
-
-        v_header = b"HTTP/1.1 " + status + " " + response + b"\r\n"
+    def send(self, version, data, ctype, status, response):
+        v_header = version + b" " + status + b" " + response + b"\r\n"
         ctype_header = b"Content-Type: " + ctype + b"\r\n"
         clen_header = b"Content-Length: " + str(len(data)).encode() + b"\r\n\r\n"
         response_header = v_header + ctype_header + clen_header
