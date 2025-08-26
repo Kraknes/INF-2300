@@ -39,26 +39,36 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
         make additional methods to organize the flow with which a request is handled by
         this method. But it all starts here!
         """
+        
+
         req_string = self.rfile.readline()
-        print(req_string)
         decode_string = req_string.decode()
+        method, URIreq, version = decode_string.split(" ")
 
-        if "GET" in decode_string:
-            if "/" or "/index.html" in decode_string:
+        if method == "GET":
+            if URIreq == "/" or URIreq == "/index.html":
                 html_file = open("index.html", "rb")
-                html_file = html_file.read()
-                self.wfile.write(html_file)
-        else:
-            self.wfile.write(b"HTTP/1.1 200 OK \r\n")
+                data = html_file.read()
+                ctype = b'text/html'
+                status = b'200'
+                response = b'OK'
+            elif URIreq == "/server.py" or "server.py":
+                status = b'403'
+                response = b'Forbidden'
+            else:
+                status = b'404'
+                response = b'Not Found'
 
-        # test2 = self.rfile.readlines()
-        # print(test2)
+        
+                
 
+        v_header = b"HTTP/1.1 " + status + " " + response + b"\r\n"
+        ctype_header = b"Content-Type: " + ctype + b"\r\n"
+        clen_header = b"Content-Length: " + str(len(data)).encode() + b"\r\n\r\n"
+        response_header = v_header + ctype_header + clen_header
 
-
-
-
-        self.wfile.write(b"HTTP/1.1 200 OK \r\n")
+        self.wfile.write(response_header + data)
+        # self.wfile.write(response_header)
         # self.wfile.close()
 
 
