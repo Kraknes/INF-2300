@@ -40,23 +40,48 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
         make additional methods to organize the flow with which a request is handled by
         this method. But it all starts here!
         """
-        
+        request_dir = {}
 
-        req_string = self.rfile.readline()
-        decode_string = req_string.decode()
-        method, URIreq, version = decode_string.split(" ")
-        version = version.replace('\r\n','')
+        # data = self.rfile.readline(10000).rsplit()
+        req_data =  self.rfile.read1()
+        reclist = req_data.decode().rsplit("\r\n")
+        method, URIreq, version = reclist[0].rsplit(" ")
+
         version = version.encode()
-
         if method == "GET":
             if URIreq == "/" or URIreq == "/index.html":
-                html_file = open("index.html", "rb")
+                html_file = os.path.join(os.getcwd(), "index.html")
+                html_file = open(html_file, "rb")
                 data = html_file.read()
                 ctype = b'text/html'
                 status = b'200'
                 response = b'OK'
                 self.send(version, data, ctype, status, response)
-            elif URIreq == '/server.py':
+            elif "server.py" in URIreq or "README.md" in URIreq:
+                status = b'403'
+                response = b'Forbidden'
+                self.send(version, None, None, status, response)
+                # header = version + b" " + status + b" " + response + b"\r\n"
+                # self.wfile.write(header)
+            else:
+                status = b'404'
+                response = b'Not Found'
+                header = version + b" " + status + b" " + response + b"\r\n"
+                self.wfile.write(header)
+
+        elif method == 'POST':
+            if "test.txt" in URIreq:
+                text_path = os.path.join(os.getcwd(), "test.txt")
+                body = (reclist[len(reclist)-1] + " \r\n").encode()
+                f = open(text_path, "ab")
+                f.write(body)
+                f = open(text_path, "rb") 
+                body = f.read()
+                ctype = b'text/plain'
+                status = b'200'
+                response = b'OK'
+                self.send(version, body, ctype, status, response)
+            elif "server.py" in URIreq or "README.md" in URIreq:
                 status = b'403'
                 response = b'Forbidden'
                 header = version + b" " + status + b" " + response + b"\r\n"
@@ -66,35 +91,22 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
                 response = b'Not Found'
                 header = version + b" " + status + b" " + response + b"\r\n"
                 self.wfile.write(header)
-
-        elif method == 'POST':
-            if URIreq == '/test.txt':
-                text_file = os.path.join(os.getcwd(), "test.txt")
-                text_file = open(text_file, "ab")
-                pass
-            
-            else:
-                status = b'404'
-                response = b'Not Found'
-                header = version + b" " + status + b" " + response + b"\r\n"
-                self.wfile.write(header)
         else:
-            status = b'404'
-            response = b'Not Found'
+            status = b'400'
+            response = b'Bad Request'
             header = version + b" " + status + b" " + response + b"\r\n"
             self.wfile.write(header)
-
-        
                 
     def send(self, version, data, ctype, status, response):
         v_header = version + b" " + status + b" " + response + b"\r\n"
-        ctype_header = b"Content-Type: " + ctype + b"\r\n"
-        clen_header = b"Content-Length: " + str(len(data)).encode() + b"\r\n\r\n"
-        response_header = v_header + ctype_header + clen_header
+        if data == None:
+            self.wfile.write(v_header)
+        else:
+            ctype_header = b"Content-Type: " + ctype + b"\r\n"
+            clen_header = b"Content-Length: " + str(len(data)).encode() + b"\r\n\r\n"
+            response_header = v_header + ctype_header + clen_header
+            self.wfile.write(response_header + data)
 
-        self.wfile.write(response_header + data)
-        # self.wfile.write(response_header)
-        # self.wfile.close()
 
 
 
