@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import socketserver
 import os
+import json
+import ast
 
 
 """
@@ -40,9 +42,8 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
         make additional methods to organize the flow with which a request is handled by
         this method. But it all starts here!
         """
-        request_dir = {}
 
-        # data = self.rfile.readline(10000).rsplit()
+
         req_data =  self.rfile.read1()
         reclist = req_data.decode().rsplit("\r\n")
         method, URIreq, version = reclist[0].rsplit(" ")
@@ -61,18 +62,28 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
                 status = b'403'
                 response = b'Forbidden'
                 self.send(version, None, None, status, response)
-                # header = version + b" " + status + b" " + response + b"\r\n"
-                # self.wfile.write(header)
+            elif "messages" in URIreq:
+                json_file = open('messages.json', 'r')
+                msg_list = json.load(json_file)
+                string = json.dumps(msg_list, indent=4)
+                b_string = str(string + "\n").encode()
+                ctype = b'text/json'
+                status = b'200'
+                response = b'OK'
+                self.send(version, b_string, ctype, status, response)
+                
             else:
                 status = b'404'
                 response = b'Not Found'
-                header = version + b" " + status + b" " + response + b"\r\n"
-                self.wfile.write(header)
+                self.send(version, None, None, status, response)
 
+        # POST request
         elif method == 'POST':
+
+            # POST request to "test.txt"
             if "test.txt" in URIreq:
-                text_path = os.path.join(os.getcwd(), "test.txt")
                 body = (reclist[len(reclist)-1] + " \r\n").encode()
+                text_path = os.path.join(os.getcwd(), "test.txt")
                 f = open(text_path, "ab")
                 f.write(body)
                 f = open(text_path, "rb") 
@@ -81,32 +92,65 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
                 status = b'200'
                 response = b'OK'
                 self.send(version, body, ctype, status, response)
+
+            # POST request to FORBIDDEN files
             elif "server.py" in URIreq or "README.md" in URIreq:
                 status = b'403'
                 response = b'Forbidden'
-                header = version + b" " + status + b" " + response + b"\r\n"
-                self.wfile.write(header)
+                self.send(version, None, None, status, response)
+
+            # POST request to 'messages.json'
+            elif "messages" in URIreq: 
+                body = (reclist[len(reclist)-1])
+                if "{" not in body and "}" not in body and "text" not in body:
+                    self.send(version, None, None, '404', 'Not correct .json format') 
+
+                # Preparing POST .json request
+                body_dict = ast.literal_eval(body)
+                
+                # If file not exist - Make and write to new file
+                if not os.path.exists('messages.json'):
+                    body_dict.update({'id': 1})
+                    with open('messages.json', 'w') as json_file:
+                        json.dump([body_dict], json_file, indent=4, sort_keys=True)
+                
+                # Else, open existing file, list append and write to existing file
+                else:
+                    with open('messages.json', 'r') as json_file:
+                        msg_list = json.load(json_file)
+                    body_id = len(msg_list) + 1
+                    body_dict.update({'id': body_id})
+                    msg_list.append(body_dict)
+
+                    with open('messages.json', 'w') as json_file:
+                        json.dump(msg_list, json_file, indent=4, sort_keys=True)
+                
+                # Header respons for accomplished POST request
+                status = b'201'
+                response = b'OK'
+                ctype = b'text/json'
+                data = str(msg_list[len(msg_list)-1]).encode()
+                self.send(version, data, ctype, status, response)                
             else:
                 status = b'404'
                 response = b'Not Found'
-                header = version + b" " + status + b" " + response + b"\r\n"
-                self.wfile.write(header)
+                self.send(version, None, None, status, response)
         else:
             status = b'400'
             response = b'Bad Request'
-            header = version + b" " + status + b" " + response + b"\r\n"
-            self.wfile.write(header)
+            self.send(version, None, None, status, response)
                 
     def send(self, version, data, ctype, status, response):
         v_header = version + b" " + status + b" " + response + b"\r\n"
         if data == None:
             self.wfile.write(v_header)
+        if ctype == None:
+            ctype = b''
         else:
             ctype_header = b"Content-Type: " + ctype + b"\r\n"
             clen_header = b"Content-Length: " + str(len(data)).encode() + b"\r\n\r\n"
             response_header = v_header + ctype_header + clen_header
             self.wfile.write(response_header + data)
-
 
 
 
