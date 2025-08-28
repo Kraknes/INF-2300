@@ -129,7 +129,9 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
                 status = b'201'
                 response = b'OK'
                 ctype = b'text/json'
-                data = str(msg_list[len(msg_list)-1]).encode()
+                unsort_data = msg_list[len(msg_list)-1]
+                sort_data = dict(sorted(unsort_data.items()))
+                data = (str(sort_data) + '\r\n').encode()
                 self.send(version, data, ctype, status, response)                
             else:
                 status = b'404'
