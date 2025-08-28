@@ -90,9 +90,9 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
             if path == 'server.py' or path == '/server.py':
                 status = 403
                 msg = f"ERROR {status} - Forbidden resource - Forbidden to perform method: {method} on path: {path}\r\n"
-            if path == "../":
-
-                
+            if path == "../README.md":
+                status = 403
+                msg = f"ERROR {status} - Forbidden access - Forbidden to perform method: {method} on path: {path}\r\n"
             else:
                 status = 404
                 msg = msg = f"ERROR {status} - Not able to perform method: {method} on path: {path}\r\n"
