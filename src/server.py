@@ -14,6 +14,7 @@ May 9th, 2019
 """
 
 class MyTCPHandler(socketserver.StreamRequestHandler):
+
     """
     This class is responsible for handling a request. The whole class is
     handed over as a parameter to the server instance so that it is capable
@@ -36,12 +37,15 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
     finish() - Does nothing by default, but is called after handle() to do any
     necessary clean up after a request is handled.
     """
+    
     def handle(self):
         """
         This method is responsible for handling an htt"p-request. You can, and should(!),
         make additional methods to organize the flow with which a request is handled by
         this method. But it all starts here!
         """
+
+        
 # TO DO: 
 # 1. Lag en mer universal send() der data ikke trengs å enkode + \r\n i hver funksjon
 # 1.1. Fiks odd-cases hvis .html, .txt eller .json fil ikke eksistere i databasen, eller har ingen info
@@ -50,147 +54,175 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
 # 3. Fiks kommentara
 # 4. Generell opprydning
 
+        status_dict = {200: 'OK', 201: 'OK', 400: 'Bad Request', 403: 'Forbidden', 404: 'Not Found', 500: 'Internal Server Error'}
+
         # Check if files exists, will then create said files to avoid future errors
-        if not os.path.exists('messages.json'):
-            with open('messages.json', 'w') as json_file:
-                data = []
-                json.dump(data, json_file, indent=4)
 
         req_data =  self.rfile.read1()
         reclist = req_data.decode().rsplit("\r\n")
         method, URIreq, version = reclist[0].rsplit(" ")
         version = version.encode()
 
-        # GET requests
+        if not os.path.exists('messages.json'):
+            with open('messages.json', 'w') as json_file:
+                data = []
+                json.dump(data, json_file, indent=4)
+        
+        # If files do exist, but can not be opened, create a new file
+        try:
+            with open('messages.json', 'r') as json_file:
+                msg_list = json.load(json_file)
+        except Exception:
+            status = 500
+            data = b'Cannot open file for reading, contact system administrator for help\r\n'
+            self.send(version, data, ctype = b'plain/text', status = str(status).encode(), response = status_dict.get(status).encode())
+
+        # GET REQUEST
         if method == "GET":
             if URIreq == "/" or URIreq == "/index.html":
-                html_file = os.path.join(os.getcwd(), "index.html")
-                html_file = open(html_file, "rb")
-                data = html_file.read()
-                ctype = b'text/html'
-                status = b'200'
-                response = b'OK'
-                self.send(version, data, ctype, status, response)
-            elif "server.py" in URIreq or "README.md" in URIreq:
-                status = b'403'
-                response = b'Forbidden'
-                self.send(version, None, None, status, response)
+                try:
+                    html_file = os.path.join(os.getcwd(), "index.html")
+                    html_file = open(html_file, "rb")
+                except Exception as e:
+                    status = 500
+                    data = b'Cannot open file for reading, contact system administrator for help\r\n'
+                    self.send(version, data, ctype = b'plain/text', status = str(status).encode(), response = status_dict.get(status).encode())
+                else:
+                    data = html_file.read()
+                    html_file.close()
+                    ctype = b'text/html'
+                    status = 200
+                    response = status_dict.get(status).encode()
+                    self.send(version, data, ctype, str(status).encode(), response)
+                    
             elif "messages" in URIreq:
                 json_file = open('messages.json', 'r')
                 msg_list = json.load(json_file)
                 string = json.dumps(msg_list, indent=4)
-                b_string = str(string + "\n").encode()
+                data = str(string + "\n").encode()
                 ctype = b'text/json'
-                status = b'200'
-                response = b'OK'
-                self.send(version, b_string, ctype, status, response)
+                status = 200
+                response = status_dict.get(status).encode()
+                self.send(version, data, ctype, str(status).encode(), response)
+            elif "server.py" in URIreq or "README.md" in URIreq:
+                status = 403
+                response = status_dict.get(status).encode()
+                self.send(version, None, None, str(status).encode(), response)
             else:
-                status = b'404'
-                response = b'Not Found'
-                self.send(version, None, None, status, response)
+                status = 404
+                response = status_dict.get(status).encode()
+                self.send(version, None, None, str(status).encode(), response)
 
-        # POST requests
+        # POST REQUEST
         elif method == 'POST':
-            # POST request to "test.txt"
-            if "test.txt" in URIreq:
+            if "test.txt" in URIreq:            
                 body = (reclist[len(reclist)-1] + " \r\n").encode()
                 text_path = os.path.join(os.getcwd(), "test.txt")
                 f = open(text_path, "ab")
                 f.write(body)
                 f = open(text_path, "rb") 
-                body = f.read()
+                data = f.read()
                 ctype = b'text/plain'
-                status = b'200'
-                response = b'OK'
-                self.send(version, body, ctype, status, response)
-
-            # POST request to FORBIDDEN files
-            elif "server.py" in URIreq or "README.md" in URIreq:
-                status = b'403'
-                response = b'Forbidden'
-                self.send(version, None, None, status, response)
-
-            # POST request to 'messages.json'
+                status = 200
+                response = status_dict.get(status).encode()
+                self.send(version, data, ctype, str(status).encode(), response)
+            elif "server.py" in URIreq or "README.md" in URIreq:   
+                status = 403
+                response = status_dict.get(status).encode()
+                self.send(version, None, None, str(status).encode(), response)
             elif "messages" in URIreq: 
                 body = reclist[len(reclist)-1]
                 if "{" not in body and "}" not in body and "text" not in body and "id" not in body:
                     self.send(version, None, None, '404', 'Not correct .json format') 
-
                 body_dict = ast.literal_eval(body)
-
                 with open('messages.json', 'r') as json_file:
                     msg_list = json.load(json_file)
                 body_id = len(msg_list) + 1
                 body_dict.update({'id': body_id})
                 msg_list.append(body_dict)
-
                 with open('messages.json', 'w') as json_file:
                     json.dump(msg_list, json_file, indent=4, sort_keys=True)
-                
-                # Header respons for accomplished POST request
                 json_file = open('messages.json', 'r')
                 msg_list = json.load(json_file)
                 data = (str(json.dumps(msg_list[len(msg_list)-1], indent=4)) + "\r\n").encode()
-                status = b'201'
-                response = b'OK'
-                ctype = b'text/json'
-
-                self.send(version, data, ctype, status, response)                
+                ctype = b'application/json'
+                status = 201
+                response = status_dict.get(status).encode()
+                self.send(version, data, ctype, str(status).encode(), response)      
             else:
-                status = b'404'
-                response = b'Not Found'
-                self.send(version, None, None, status, response)
+                status = 404
+                response = status_dict.get(status).encode()
+                self.send(version, None, None, str(status).encode(), response)
 
+        # PUT REQUEST
         elif method == "PUT":
             if "messages" in URIreq:
                 body = reclist[len(reclist)-1]
-                if "{" not in body and "}" not in body and "text" not in body and "id" not in body:
-                    self.send(version, None, None, '404', 'Not correct .json format') 
-                with open('messages.json', 'r') as json_file:
-                    msg_list = json.load(json_file)
+                if "{" not in body or "}" not in body or "text" not in body or "id" not in body:
+                    status = 400
+                    self.send(version, None, None, str(status).encode(), status_dict.get(status).encode())
+                else:
+                    with open('messages.json', 'r') as json_file:
+                        msg_list = json.load(json_file)
+                    body_dict = ast.literal_eval(body)
+                    found = False
+                    for x in msg_list:
+                        if x['id'] == body_dict['id']:
+                            x['text'] = body_dict['text']
+                            found = True
+                            break
+                    if found == True:
+                        with open('messages.json', 'w') as json_file:
+                            json.dump(msg_list, json_file, indent=4, sort_keys=True)
+                        status = 200
+                        response = status_dict.get(status).encode()
+                        self.send(version, None, None, str(status).encode(), response)
+                    else:
+                        status = 404
+                        response = status_dict.get(status).encode()
+                        self.send(version, None, None, str(status).encode(), response)
 
-                body_dict = ast.literal_eval(body)
-                for x in msg_list:
-                    if x['id'] == body_dict['id']:
-                        x['text'] = body_dict['text']
-                        break
-                with open('messages.json', 'w') as json_file:
-                    json.dump(msg_list, json_file, indent=4, sort_keys=True)
-                status = b'204' # er dette riktig svar?
-                response = b'No Content'
-                self.send(version, None, None, status, response)
             else: # er dette riktig svar?
-                status = b'400'
-                response = b'Bad Request'
-                self.send(version, None, None, status, response)
+                status = 404
+                response = status_dict.get(status).encode()
+                self.send(version, None, None, str(status).encode(), response)
+        
+        # DELETE REQUEST
         elif method == 'DELETE':
             if "messages" in URIreq:
                 body = reclist[len(reclist)-1]
-                if "{" not in body and "}" not in body and "text" not in body and "id" not in body:
-                    self.send(version, None, None, '404', 'Not correct .json format') 
-                with open('messages.json', 'r') as json_file:
-                    msg_list = json.load(json_file)
-
-                body_dict = ast.literal_eval(body)
-                for x in msg_list:
-                    if x['id'] == body_dict['id']:
-                        x['text'] = ''
-                        break
-                with open('messages.json', 'w') as json_file:
-                    json.dump(msg_list, json_file, indent=4, sort_keys=True)
-
-                status = b'200' # er dette riktig svar?
-                response = b'OK'
-                self.send(version, None, None, status, response)
+                if "{" not in body or "}" not in body or "text" not in body or "id" not in body:
+                    status = 400
+                    self.send(version, None, None, str(status).encode(), status_dict.get(status).encode())
+                else:
+                    with open('messages.json', 'r') as json_file:
+                        msg_list = json.load(json_file)
+                    body_dict = ast.literal_eval(body)
+                    found = False
+                    for x in msg_list:
+                        if x['id'] == body_dict['id']:
+                            x['text'] = ''
+                            found = True
+                            break
+                    if found == True:
+                        with open('messages.json', 'w') as json_file:
+                            json.dump(msg_list, json_file, indent=4, sort_keys=True)
+                        status = 200
+                        response = status_dict.get(status).encode()
+                        self.send(version, None, None, str(status).encode(), response)
+                    else:
+                        status = 404
+                        response = status_dict.get(status).encode()
+                        self.send(version, None, None, str(status).encode(), response)
             else: # er dette riktig svar?
-                status = b'400'
-                response = b'Bad Request'
-                self.send(version, None, None, status, response)    
+                status = 404
+                response = status_dict.get(status).encode()
+                self.send(version, None, None, str(status).encode(), response)
 
         else: # er dette riktig svar?
-            status = b'400'
-            response = b'Bad Request'
-            self.send(version, None, None, status, response)
+            status = 400
+            response = status_dict.get(status).encode()
+            self.send(version, None, None, str(status).encode(), response)
                 
     def send(self, version, data, ctype, status, response):
         v_header = version + b" " + status + b" " + response + b"\r\n"
@@ -203,7 +235,6 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
             clen_header = b"Content-Length: " + str(len(data)).encode() + b"\r\n\r\n"
             response_header = v_header + ctype_header + clen_header
             self.wfile.write(response_header + data)
-
 
 
 if __name__ == "__main__":

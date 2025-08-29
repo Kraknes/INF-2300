@@ -1,14 +1,14 @@
 [
     {
         "id": 1,
-        "text": "example PUT text"
+        "text": "Test"
     },
     {
         "id": 2,
-        "text": "example text"
+        "text": "Example text"
     },
     {
         "id": 3,
-        "text": ""
+        "text": "Test"
     }
 ]

@@ -18,7 +18,7 @@ May 9th, 2019
 RANDOM_TESTING_ORDER = True
 
 HOST = "localhost"
-PORT = 54321
+PORT = 54444
 
 with open("index.html", "rb") as infile:
     EXPECTED_BODY = infile.read()

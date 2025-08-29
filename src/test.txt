@@ -1,1 +1,2 @@
 text=Simple test 
+{id: 3, text: Test} 
