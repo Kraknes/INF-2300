@@ -38,17 +38,30 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
     """
     def handle(self):
         """
-        This method is responsible for handling an http-request. You can, and should(!),
+        This method is responsible for handling an htt"p-request. You can, and should(!),
         make additional methods to organize the flow with which a request is handled by
         this method. But it all starts here!
         """
+# TO DO: 
+# 1. Lag en mer universal send() der data ikke trengs å enkode + \r\n i hver funksjon
+# 1.1. Fiks odd-cases hvis .html, .txt eller .json fil ikke eksistere i databasen, eller har ingen info
+# 1.2. Lag en Dict av responses og status
+# 2. Fiks if statements for URIreq til å være mer spesific Urireq == xxx
+# 3. Fiks kommentara
+# 4. Generell opprydning
 
+        # Check if files exists, will then create said files to avoid future errors
+        if not os.path.exists('messages.json'):
+            with open('messages.json', 'w') as json_file:
+                data = []
+                json.dump(data, json_file, indent=4)
 
         req_data =  self.rfile.read1()
         reclist = req_data.decode().rsplit("\r\n")
         method, URIreq, version = reclist[0].rsplit(" ")
-
         version = version.encode()
+
+        # GET requests
         if method == "GET":
             if URIreq == "/" or URIreq == "/index.html":
                 html_file = os.path.join(os.getcwd(), "index.html")
@@ -71,15 +84,13 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
                 status = b'200'
                 response = b'OK'
                 self.send(version, b_string, ctype, status, response)
-                
             else:
                 status = b'404'
                 response = b'Not Found'
                 self.send(version, None, None, status, response)
 
-        # POST request
+        # POST requests
         elif method == 'POST':
-
             # POST request to "test.txt"
             if "test.txt" in URIreq:
                 body = (reclist[len(reclist)-1] + " \r\n").encode()
@@ -101,53 +112,92 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
 
             # POST request to 'messages.json'
             elif "messages" in URIreq: 
-                body = (reclist[len(reclist)-1])
-                if "{" not in body and "}" not in body and "text" not in body:
+                body = reclist[len(reclist)-1]
+                if "{" not in body and "}" not in body and "text" not in body and "id" not in body:
                     self.send(version, None, None, '404', 'Not correct .json format') 
 
-                # Preparing POST .json request
                 body_dict = ast.literal_eval(body)
-                
-                # If file not exist - Make and write to new file
-                if not os.path.exists('messages.json'):
-                    body_dict.update({'id': 1})
-                    with open('messages.json', 'w') as json_file:
-                        json.dump([body_dict], json_file, indent=4, sort_keys=True)
-                
-                # Else, open existing file, list append and write to existing file
-                else:
-                    with open('messages.json', 'r') as json_file:
-                        msg_list = json.load(json_file)
-                    body_id = len(msg_list) + 1
-                    body_dict.update({'id': body_id})
-                    msg_list.append(body_dict)
 
-                    with open('messages.json', 'w') as json_file:
-                        json.dump(msg_list, json_file, indent=4, sort_keys=True)
+                with open('messages.json', 'r') as json_file:
+                    msg_list = json.load(json_file)
+                body_id = len(msg_list) + 1
+                body_dict.update({'id': body_id})
+                msg_list.append(body_dict)
+
+                with open('messages.json', 'w') as json_file:
+                    json.dump(msg_list, json_file, indent=4, sort_keys=True)
                 
                 # Header respons for accomplished POST request
+                json_file = open('messages.json', 'r')
+                msg_list = json.load(json_file)
+                data = (str(json.dumps(msg_list[len(msg_list)-1], indent=4)) + "\r\n").encode()
                 status = b'201'
                 response = b'OK'
                 ctype = b'text/json'
-                unsort_data = msg_list[len(msg_list)-1]
-                sort_data = dict(sorted(unsort_data.items()))
-                data = (str(sort_data) + '\r\n').encode()
+
                 self.send(version, data, ctype, status, response)                
             else:
                 status = b'404'
                 response = b'Not Found'
                 self.send(version, None, None, status, response)
-        else:
+
+        elif method == "PUT":
+            if "messages" in URIreq:
+                body = reclist[len(reclist)-1]
+                if "{" not in body and "}" not in body and "text" not in body and "id" not in body:
+                    self.send(version, None, None, '404', 'Not correct .json format') 
+                with open('messages.json', 'r') as json_file:
+                    msg_list = json.load(json_file)
+
+                body_dict = ast.literal_eval(body)
+                for x in msg_list:
+                    if x['id'] == body_dict['id']:
+                        x['text'] = body_dict['text']
+                        break
+                with open('messages.json', 'w') as json_file:
+                    json.dump(msg_list, json_file, indent=4, sort_keys=True)
+                status = b'204' # er dette riktig svar?
+                response = b'No Content'
+                self.send(version, None, None, status, response)
+            else: # er dette riktig svar?
+                status = b'400'
+                response = b'Bad Request'
+                self.send(version, None, None, status, response)
+        elif method == 'DELETE':
+            if "messages" in URIreq:
+                body = reclist[len(reclist)-1]
+                if "{" not in body and "}" not in body and "text" not in body and "id" not in body:
+                    self.send(version, None, None, '404', 'Not correct .json format') 
+                with open('messages.json', 'r') as json_file:
+                    msg_list = json.load(json_file)
+
+                body_dict = ast.literal_eval(body)
+                for x in msg_list:
+                    if x['id'] == body_dict['id']:
+                        x['text'] = ''
+                        break
+                with open('messages.json', 'w') as json_file:
+                    json.dump(msg_list, json_file, indent=4, sort_keys=True)
+
+                status = b'200' # er dette riktig svar?
+                response = b'OK'
+                self.send(version, None, None, status, response)
+            else: # er dette riktig svar?
+                status = b'400'
+                response = b'Bad Request'
+                self.send(version, None, None, status, response)    
+
+        else: # er dette riktig svar?
             status = b'400'
             response = b'Bad Request'
             self.send(version, None, None, status, response)
                 
     def send(self, version, data, ctype, status, response):
         v_header = version + b" " + status + b" " + response + b"\r\n"
-        if data == None:
-            self.wfile.write(v_header)
         if ctype == None:
             ctype = b''
+        if data == None:
+            self.wfile.write(v_header)
         else:
             ctype_header = b"Content-Type: " + ctype + b"\r\n"
             clen_header = b"Content-Length: " + str(len(data)).encode() + b"\r\n\r\n"

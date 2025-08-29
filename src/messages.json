@@ -1,7 +1,7 @@
 [
     {
         "id": 1,
-        "text": "example text"
+        "text": "example PUT text"
     },
     {
         "id": 2,
@@ -9,38 +9,6 @@
     },
     {
         "id": 3,
-        "text": "example text"
-    },
-    {
-        "id": 4,
-        "text": "example text"
-    },
-    {
-        "id": 5,
-        "text": "example text"
-    },
-    {
-        "id": 6,
-        "text": "example text"
-    },
-    {
-        "id": 7,
-        "text": "example text"
-    },
-    {
-        "id": 8,
-        "text": "example text"
-    },
-    {
-        "id": 9,
-        "text": "example text"
-    },
-    {
-        "id": 10,
-        "text": "example text"
-    },
-    {
-        "id": 11,
-        "text": "example text"
+        "text": ""
     }
 ]
