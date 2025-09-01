@@ -3,6 +3,7 @@ import socketserver
 import os
 import json
 import ast
+import sys
 
 
 """
@@ -45,7 +46,6 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
         this method. But it all starts here!
         """
 
-        
 # TO DO: 
 # 1. Lag en mer universal send() der data ikke trengs å enkode + \r\n i hver funksjon
 # 1.1. Fiks odd-cases hvis .html, .txt eller .json fil ikke eksistere i databasen, eller har ingen info
@@ -109,7 +109,6 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
                 ctype = b'text/html'
                 status = 200
                 response = status_dict.get(status).encode()
-                print("GET request OK\n")
                 self.send(version, data, ctype, str(status).encode(), response)
 
             elif URIreq == '/messages' or URIreq == '/messages.json':
@@ -125,7 +124,6 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
             elif 'server' in URIreq or 'README' in URIreq:
                 status = 403
                 response = status_dict.get(status).encode()
-                print("GET request OK\n")
                 self.send(version, None, None, str(status).encode(), response)
                 
             else:
@@ -135,7 +133,7 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
 
         # POST REQUEST
         elif method == 'POST':
-            if URIreq == '/test.txt' or URIreq == 'text.txt':   
+            if URIreq == '/test.txt' or URIreq == 'test.txt':   
                 body = (reclist[len(reclist)-1] + " \r\n").encode()
                 text_path = os.path.join(os.getcwd(), "test.txt")
                 f = open(text_path, "ab")
@@ -145,23 +143,22 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
                 ctype = b'text/plain'
                 status = 200
                 response = status_dict.get(status).encode()
-                print(f"{method} request to {URIreq} - OK\n")
                 self.send(version, data, ctype, str(status).encode(), response)
 
             elif "messages" in URIreq: 
                 body = reclist[len(reclist)-1]
 
                 # In case request body is not to form
-                y = '\"text\"'
                 if "{" not in body or "}" not in body or '\"text\"' not in body:
                     self.send(version, None, None, '404', 'Not correct .json format') 
 
-                # In case creation of dictionary of body string cause problems
+                # In case creation or altering the dictionary of body string cause problems
                 try: 
                     body_dict = ast.literal_eval(body)
                     with open('messages.json', 'r') as json_file:
                         msg_list = json.load(json_file)
                     body_id = len(msg_list) + 1
+                    body_dict.update({'id': body_id})
                 except Exception as e:
                     status = 400
                     response = status_dict.get(status).encode()
@@ -169,29 +166,16 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
                     self.send(b'HTTP/1.1 ', None, None, str(status).encode(), response)
                     return
                 
-                # If altering the dictionary causes problem
-                try:  
-                    body_dict.update({'id': body_id})
-                except Exception as e:
-                    status = 400
-                    response = status_dict.get(status).encode()
-                    self.send(version, None, None, str(status).encode(), response)
-                    print(f"Problem with {method} to {URIreq}:\n{e}")
-                    return
-                
                 msg_list.append(body_dict)
                 with open('messages.json', 'w') as json_file:
                     json.dump(msg_list, json_file, indent=4, sort_keys=True)
-                json_file = open('messages.json', 'r')
-                msg_list = json.load(json_file)
-                data = (str(json.dumps(msg_list[len(msg_list)-1], indent=4)) + "\r\n").encode()
+                data = (str(json.dumps(body_dict, sort_keys=True, indent=4)) + "\r\n").encode()
                 ctype = b'application/json'
                 status = 201
                 response = status_dict.get(status).encode()
-                print(f"{method} request to {URIreq} - OK\n")
                 self.send(version, data, ctype, str(status).encode(), response)    
 
-            elif "server.py" in URIreq or "README.md" in URIreq:   
+            elif "server" in URIreq or "README" in URIreq:   
                 status = 403
                 response = status_dict.get(status).encode()
                 self.send(version, None, None, str(status).encode(), response)  
@@ -205,7 +189,49 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
         elif method == "PUT":
             if "messages" in URIreq:
                 body = reclist[len(reclist)-1]
-                if "{" not in body or "}" not in body or "text" not in body or "id" not in body:
+                if "{" not in body or "}" not in body or '\"text\"' not in body or "id" not in body:
+                    status = 400
+                    self.send(version, None, None, str(status).encode(), status_dict.get(status).encode())
+                    return
+                
+                try: # In case of failure 
+                    with open('messages.json', 'r') as json_file:
+                        msg_list = json.load(json_file)
+                    body_dict = ast.literal_eval(body)
+                except Exception as e:
+                    status = 400
+                    response = status_dict.get(status).encode()
+                    self.send(version, None, None, str(status).encode(), response)
+                    print(f"Problem with {method} to {URIreq}:\n{e}")
+                    return
+                found = False
+                for x in msg_list:
+                    if x['id'] == body_dict['id']:
+                        x['text'] = body_dict['text']
+                        found = True
+                        break
+                if found == True:
+                    with open('messages.json', 'w') as json_file:
+                        json.dump(msg_list, json_file, indent=4, sort_keys=True)
+                    status = 200
+                    response = status_dict.get(status).encode()
+                    self.send(version, None, None, str(status).encode(), response)
+                    print(f"{method} request to {URIreq} - OK\n")
+                else:
+                    status = 404
+                    response = status_dict.get(status).encode()
+                    self.send(version, None, None, str(status).encode(), response)
+
+            else: # er dette riktig svar?
+                status = 404
+                response = status_dict.get(status).encode()
+                self.send(version, None, None, str(status).encode(), response)
+        
+        # DELETE REQUEST
+        elif method == 'DELETE':
+            if "messages" in URIreq:
+                body = reclist[len(reclist)-1]
+                if "{" not in body or "}" not in body or '\"text\"' not in body or '\"id\"' not in body:
                     status = 400
                     self.send(version, None, None, str(status).encode(), status_dict.get(status).encode())
                 else:
@@ -222,40 +248,6 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
                     found = False
                     for x in msg_list:
                         if x['id'] == body_dict['id']:
-                            x['text'] = body_dict['text']
-                            found = True
-                            break
-                    if found == True:
-                        with open('messages.json', 'w') as json_file:
-                            json.dump(msg_list, json_file, indent=4, sort_keys=True)
-                        status = 200
-                        response = status_dict.get(status).encode()
-                        self.send(version, None, None, str(status).encode(), response)
-                        print(f"{method} request to {URIreq} - OK\n")
-                    else:
-                        status = 404
-                        response = status_dict.get(status).encode()
-                        self.send(version, None, None, str(status).encode(), response)
-
-            else: # er dette riktig svar?
-                status = 404
-                response = status_dict.get(status).encode()
-                self.send(version, None, None, str(status).encode(), response)
-        
-        # DELETE REQUEST
-        elif method == 'DELETE':
-            if "messages" in URIreq:
-                body = reclist[len(reclist)-1]
-                if "{" not in body or "}" not in body or "text" not in body or "id" not in body:
-                    status = 400
-                    self.send(version, None, None, str(status).encode(), status_dict.get(status).encode())
-                else:
-                    with open('messages.json', 'r') as json_file:
-                        msg_list = json.load(json_file)
-                    body_dict = ast.literal_eval(body)
-                    found = False
-                    for x in msg_list:
-                        if x['id'] == body_dict['id']:
                             x['text'] = ''
                             found = True
                             break
@@ -264,19 +256,18 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
                             json.dump(msg_list, json_file, indent=4, sort_keys=True)
                         status = 200
                         response = status_dict.get(status).encode()
-                        print(f"{method} request to {URIreq} - OK\n")
                         self.send(version, None, None, str(status).encode(), response)
                     else:
                         status = 404
                         response = status_dict.get(status).encode()
                         self.send(version, None, None, str(status).encode(), response)
-            else: # er dette riktig svar?
+            else: 
                 status = 404
                 response = status_dict.get(status).encode()
                 self.send(version, None, None, str(status).encode(), response)
 
-        else: # er dette riktig svar?
-            status = 400
+        else: 
+            status = 404
             response = status_dict.get(status).encode()
             self.send(version, None, None, str(status).encode(), response)
                 
