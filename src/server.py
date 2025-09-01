@@ -59,9 +59,16 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
         # Check if files exists, will then create said files to avoid future errors
 
         req_data =  self.rfile.read1()
-        reclist = req_data.decode().rsplit("\r\n")
-        method, URIreq, version = reclist[0].rsplit(" ")
-        version = version.encode()
+        try:
+            reclist = req_data.decode().rsplit("\r\n")
+            method, URIreq, version = reclist[0].rsplit(" ")
+            version = version.encode()
+
+        except:
+            status = 403
+            response = status_dict.get(status).encode()
+            self.send(b'HTTP 1/1 ', None, None, str(status).encode(), response)
+            return
 
         if not os.path.exists('messages.json'):
             with open('messages.json', 'w') as json_file:
@@ -87,14 +94,15 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
                     status = 500
                     data = b'Cannot open file for reading, contact system administrator for help\r\n'
                     self.send(version, data, ctype = b'plain/text', status = str(status).encode(), response = status_dict.get(status).encode())
-                else:
-                    data = html_file.read()
-                    html_file.close()
-                    ctype = b'text/html'
-                    status = 200
-                    response = status_dict.get(status).encode()
-                    self.send(version, data, ctype, str(status).encode(), response)
-                    
+                    return
+                
+                data = html_file.read()
+                html_file.close()
+                ctype = b'text/html'
+                status = 200
+                response = status_dict.get(status).encode()
+                self.send(version, data, ctype, str(status).encode(), response)
+
             elif "messages" in URIreq:
                 json_file = open('messages.json', 'r')
                 msg_list = json.load(json_file)
