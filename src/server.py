@@ -55,7 +55,10 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
 # 4. Generell opprydning
 
         status_dict = {200: 'OK', 201: 'OK', 400: 'Bad Request', 
-                       403: 'Forbidden', 404: 'Not Found', 500: 'Internal Server Error'}
+                       403: 'Forbidden', 404: 'Not Found', 
+                       500: 'Internal Server Error'}
+
+        print(("REQUEST from client: " + str(self.client_address) +"\n"))
 
         # Splitting REQUEST string to get REQUEST information
         req_data =  self.rfile.read1()
@@ -109,7 +112,7 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
                 print("GET request OK\n")
                 self.send(version, data, ctype, str(status).encode(), response)
 
-            elif "messages" in URIreq:
+            elif URIreq == '/messages' or URIreq == '/messages.json':
                 json_file = open('messages.json', 'r')
                 msg_list = json.load(json_file)
                 string = json.dumps(msg_list, indent=4)
@@ -118,11 +121,13 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
                 status = 200
                 response = status_dict.get(status).encode()
                 self.send(version, data, ctype, str(status).encode(), response)
-            elif "server.py" in URIreq or "README.md" in URIreq:
+
+            elif 'server' in URIreq or 'README' in URIreq:
                 status = 403
                 response = status_dict.get(status).encode()
                 print("GET request OK\n")
                 self.send(version, None, None, str(status).encode(), response)
+                
             else:
                 status = 404
                 response = status_dict.get(status).encode()
@@ -130,7 +135,7 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
 
         # POST REQUEST
         elif method == 'POST':
-            if "test.txt" in URIreq:            
+            if URIreq == '/test.txt' or URIreq == 'text.txt':   
                 body = (reclist[len(reclist)-1] + " \r\n").encode()
                 text_path = os.path.join(os.getcwd(), "test.txt")
                 f = open(text_path, "ab")
@@ -142,23 +147,30 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
                 response = status_dict.get(status).encode()
                 print(f"{method} request to {URIreq} - OK\n")
                 self.send(version, data, ctype, str(status).encode(), response)
-            elif "server.py" in URIreq or "README.md" in URIreq:   
-                status = 403
-                response = status_dict.get(status).encode()
-                self.send(version, None, None, str(status).encode(), response)
+
             elif "messages" in URIreq: 
                 body = reclist[len(reclist)-1]
 
                 # In case request body is not to form
-                if "{" not in body and "}" not in body and "text" not in body and "id" not in body:
+                y = '\"text\"'
+                if "{" not in body or "}" not in body or '\"text\"' not in body:
                     self.send(version, None, None, '404', 'Not correct .json format') 
-                body_dict = ast.literal_eval(body)
-                with open('messages.json', 'r') as json_file:
-                    msg_list = json.load(json_file)
-                body_id = len(msg_list) + 1
 
                 # In case creation of dictionary of body string cause problems
                 try: 
+                    body_dict = ast.literal_eval(body)
+                    with open('messages.json', 'r') as json_file:
+                        msg_list = json.load(json_file)
+                    body_id = len(msg_list) + 1
+                except Exception as e:
+                    status = 400
+                    response = status_dict.get(status).encode()
+                    print(f"Problem with:\n{e}")
+                    self.send(b'HTTP/1.1 ', None, None, str(status).encode(), response)
+                    return
+                
+                # If altering the dictionary causes problem
+                try:  
                     body_dict.update({'id': body_id})
                 except Exception as e:
                     status = 400
@@ -166,6 +178,7 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
                     self.send(version, None, None, str(status).encode(), response)
                     print(f"Problem with {method} to {URIreq}:\n{e}")
                     return
+                
                 msg_list.append(body_dict)
                 with open('messages.json', 'w') as json_file:
                     json.dump(msg_list, json_file, indent=4, sort_keys=True)
@@ -176,7 +189,13 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
                 status = 201
                 response = status_dict.get(status).encode()
                 print(f"{method} request to {URIreq} - OK\n")
-                self.send(version, data, ctype, str(status).encode(), response)      
+                self.send(version, data, ctype, str(status).encode(), response)    
+
+            elif "server.py" in URIreq or "README.md" in URIreq:   
+                status = 403
+                response = status_dict.get(status).encode()
+                self.send(version, None, None, str(status).encode(), response)  
+
             else:
                 status = 404
                 response = status_dict.get(status).encode()
