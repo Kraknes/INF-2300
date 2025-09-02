@@ -161,7 +161,7 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
                 data = (str(json.dumps(body_dict, sort_keys=True, indent=4)) + "\r\n").encode()
                 ctype = b'application/json'
                 status = 201
-                self.send(version, None, None, status)
+                self.send(version, data, ctype, status)
                 print(f"{method} request to {URIreq} - OK\n")    
 
             elif "server" in URIreq or "README" in URIreq:   
@@ -205,7 +205,7 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
                 else:
                     status = 404
                     self.send(version, None, None, status)
-            else: # er dette riktig svar?
+            else: 
                 status = 404
                 self.send(version, None, None, status)
         
