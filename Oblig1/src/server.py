@@ -126,7 +126,7 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
         elif method == 'POST':
             if URIreq == '/test.txt' or URIreq == 'test.txt':   
                 body = (reclist[len(reclist)-1] + " \r\n").encode()
-                text_path = os.path.join(os.getcwd(), "test.txt")
+           -     text_path = os.path.join(os.getcwd(), "test.txt")
                 f = open(text_path, "ab")
                 f.write(body)
                 f = open(text_path, "rb") 
