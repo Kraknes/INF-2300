@@ -46,16 +46,6 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
         this method. But it all starts here!
         """
 
-# TO DO: 
-# 1. Lag en mer universal send() der data ikke trengs å enkode + \r\n i hver funksjon
-# 1.1. Fiks odd-cases hvis .html, .txt eller .json fil ikke eksistere i databasen, eller har ingen info
-# 1.2. Lag en Dict av responses og status
-# 2. Fiks if statements for URIreq til å være mer spesific Urireq == xxx
-# 3. Fiks kommentara
-# 4. Generell opprydning
-
-
-
         # Splitting REQUEST string to get REQUEST information
         req_data =  self.rfile.read1()
         try:

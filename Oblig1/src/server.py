@@ -45,7 +45,7 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
         make additional methods to organize the flow with which a request is handled by
         this method. But it all starts here!
         """
-        
+
         # Splitting REQUEST string to get REQUEST information
         req_data =  self.rfile.read1()
         try:
@@ -171,7 +171,7 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
                     self.send(version, None, None, status)
                     return
                 
-                try: # In case of failure 
+                try: # In case of failure in opening og creating dictionary
                     with open(json_path, 'r') as json_file:
                         msg_list = json.load(json_file)
                     body_dict = ast.literal_eval(body)
@@ -207,9 +207,9 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
                     status = 400
                     self.send(version, None, None, status)
                 else:
-                    with open(json_path, 'r') as json_file:
-                        msg_list = json.load(json_file)
-                    try: 
+                    try: # In case of failure in opening og creating dictionary
+                        with open(json_path, 'r') as json_file:
+                            msg_list = json.load(json_file)
                         body_dict = ast.literal_eval(body)
                     except Exception as e:
                         status = 400
