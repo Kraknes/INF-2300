@@ -53,6 +53,10 @@ def bad_request_error(error):
 def index():
     return render_template('index.html', items=items)
 
+@app.route("/index_aug", methods=["GET"])
+def index_aug():
+    return render_template('index_aug.html')
+
 
 @app.route("/api/items/", methods=["GET"])
 def get_items():

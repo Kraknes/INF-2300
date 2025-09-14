@@ -10,15 +10,65 @@
 
 <!-- koden begynne her -->
 <body>
-<h1> TODO List </h1>
-<p> In the list below are your TODO assignments</p>
+
+    <h1> TODO List </h1>
+
+    <p> In the list below are your TODO assignments</p>
+    <p id="input">This is a list</p>
+
+    <script>
+    getText()
+    async function getText() {
+        let myObject = await fetch("/api/items");
+        let myText = await myObject.text();
+        document.getElementById("input").innerHTML = myText;
+    }
+    </script>
 
 
-<button type="button" onclick="myFunction()">Submit</button>
+    
 
 
 
 
+<!-- 
+    <ul>
+        {% for item in items %}
+        <li data-id="{{item.id}}">
+            <input type="checkbox" {% if item.done %}checked{% endif %} disabled>
+            <span>{{ item.name }}</span>
+        </li>
+        {% else %}
+            <li><em>No items yet.</em></li>
+        {% endfor %}
+
+    </ul> -->
+
+<!-- 
+<button type="button" onclick="myFunction()">Click Me!</button>
+
+<p id="demo">This is a demonstration.</p>
+
+
+<button type="button"
+onclick=fetchData()>
+Click me to get data</button>
+<p id="demo">Data comes here </p>
+
+
+ -->
+
+<!-- <script>
+    function myFunction() { 
+        document.getElementById("demo").innerText = "Hello JavaScript!";
+        }
+
+    function fetchData() {
+
+
+        }
+
+</script> -->
 
 </body>
 
