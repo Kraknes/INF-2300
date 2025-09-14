@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Simple Website</title>
+</head>
+
+
+<body>
+    <h1>Welcome to My Simple Website!</h1>
+    <p>This is a basic HTML page.</p>
+    
+    
+    <button type="button" onclick="myFunction()">Check</button>
+    <p id="demo">This is a demonstration.</p>
+    
+    <button type="button" >Click Me!</button>
+    
+
+    <script>
+    function myFunction() { 
+    document.getElementById("demo").innerHTML = "Hello JavaScript!";
+    }
+    </script>
+
+   
+ <table>
+  <tr>
+    <th>Name</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>A</td>
+    <td>Description of A</td>
+  </tr>
+  <tr>
+    <td>B</td>
+    <td>Description of B</td>
+  </tr>
+</table> 
+
+ <ul>
+  <li>London</li>
+  <li>Paris</li>
+  <li>Tokyo</li>
+   <li>BerlinHEIRL</li>
+</ul> 
+
+
+<script>
+    
+    fetch('localhost:8080') 
+    .then(response => response.json()) 
+    .then(data => {
+        document.getElementById('data-container').innerHTML = `
+        <h2>${data.title}</h2>
+        <p>${data.description}</p>
+        `;
+    })
+    .catch(error => console.error('Error fetching data:', error));
+</script>
+
+<!-- In your HTML file -->
+<div id="data-container">
+  <!-- Data fetched from the server will be displayed here -->
+
+</div>
+
+<div class="form-group">
+    <label for="input_text">Text to POST</label>
+    <input id="input_text" class="form-control" type="text" name="text" placeholder="Enter the text to POST here." onchange="on_text_changed()" />
+</div>
+<input class="btn btn-default" type="submit" value="Submit" />
+
+    
+    <script type="text/javascript">
+
+        function on_text_changed() {
+            var inputText = document.getElementById("input_text");
+            if (inputText) {
+                var inputStringNonEncoded = inputText.value;
+                var inputStringEncoded = encodeURIComponent(inputStringNonEncoded ? inputStringNonEncoded : "");
+
+                var decodedTextArea = document.getElementById("input_urlencoded");
+                if (decodedTextArea) {
+                    decodedTextArea.value = (inputText.name ? inputText.name : "text") + '=' + inputStringEncoded;
+                }
+            }
+        }
+    </script>
+</body>
+</html>

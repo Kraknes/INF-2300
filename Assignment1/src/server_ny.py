@@ -171,7 +171,7 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
                     self.send(version, None, None, status)
                     return
                 
-                try: # In case of failure 
+                try: # In case of failure in opening og creating dictionary
                     with open(json_path, 'r') as json_file:
                         msg_list = json.load(json_file)
                     body_dict = ast.literal_eval(body)
@@ -207,9 +207,9 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
                     status = 400
                     self.send(version, None, None, status)
                 else:
-                    with open(json_path, 'r') as json_file:
-                        msg_list = json.load(json_file)
-                    try: 
+                    try: # In case of failure in opening og creating dictionary
+                        with open(json_path, 'r') as json_file:
+                            msg_list = json.load(json_file)
                         body_dict = ast.literal_eval(body)
                     except Exception as e:
                         status = 400
@@ -238,7 +238,8 @@ class MyTCPHandler(socketserver.StreamRequestHandler):
         else: 
             status = 404
             self.send(version, None, None, status)
-                
+    
+    # Respond function
     def send(self, version, data, ctype, status):
         status_dict = {200: 'OK', 201: 'OK', 400: 'Bad Request', 
                        403: 'Forbidden', 404: 'Not Found', 
