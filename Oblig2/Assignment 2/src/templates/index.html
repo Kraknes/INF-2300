@@ -25,6 +25,7 @@ td, th {
 </style>
 
 <!-- koden begynne her -->
+ <!-- TODO: Må ha en knapp for å endre hver query til å være gjennomført eller ikke -->
  
 <body>
 
@@ -48,6 +49,15 @@ td, th {
             <button type="submit">Submit ID</button>
         </fieldset>
     </form>
+
+    <form id="changeID" onsubmit="return putID(event)">
+        <fieldset>
+            <legend>Change ID:</legend>
+            <input type="number" id="IDtoPut" placeholder="Enter Query ID" min="1" required>
+            <input type="text" id="TexttoPut" placeholder="New TODO query" required>
+            <button type="submit">Submit ID</button>
+        </fieldset>
+    </form>
     
     <form id="deleteID" onsubmit="return deleteID(event)">
         <fieldset>
@@ -63,6 +73,7 @@ td, th {
             <legend>TODO list</legend>
                 <!-- Fetch button for TODO list (GET) -->
                 <button type="button" onclick="getText()"> Click to fetch whole list</button>
+                <button type="button" onclick="removeList()"> Click to remove whole list</button>
 
                 <!-- Tabell over TODOs -->
                 <table id="todo-table">
@@ -80,6 +91,45 @@ td, th {
     
     <!-- Function/scrips for functionality of HTML page -->
     <script>
+        async function removeList(){
+
+            const table = document.getElementById('todo-table');
+            table.innerHTML = '';
+            let text = "<tr><th> ID </th><th> Name </th><th> Done </th></tr>";
+            table.innerHTML += text;
+        }
+
+        async function putID(e){
+            e.preventDefault();
+            var numberID = document.getElementById("IDtoPut").value.trim();
+            var name = document.getElementById("TexttoPut").value;
+            
+            // Respondere riktig til server
+            const response = await fetch(`/api/items/${encodeURIComponent(numberID)}`,
+                {
+                method: "put",
+                body: JSON.stringify({name}),
+                headers: {
+                    "Content-type": "application/json"}
+                }
+            )
+
+            console.log(response);
+            const object = await response.json();
+            let item = object.item;
+            
+            // Legger til responsen til listen
+            const table = document.getElementById('todo-table');
+            // if (!table){
+                // Må legge til slik at hvis det er ingen i tabellen så må headers lage
+            // }
+            table.innerHTML = '';
+            let text = "<tr><th> ID </th><th> Name </th><th> Done </th></tr>"
+            text += "<tr><td>"+item.id+"</td>" + "<td>"+item.name+"</td>" + "<td>"+item.done+"</td></tr>";
+            table.innerHTML = text;
+
+        }
+
         async function deleteID(e){
             e.preventDefault();
             var numberID = document.getElementById("IDtoDelete").value.trim();
@@ -98,7 +148,7 @@ td, th {
             const object = await response.json();
             console.log(object);
             var string = document.getElementById("deleteStatus");
-            string.innerHTML = "ID to be deleted returned:" + object.deleted
+            string.innerHTML = "ID to be deleted returned: " + object.deleted
 
         }
 
