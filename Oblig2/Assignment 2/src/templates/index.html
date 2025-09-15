@@ -8,67 +8,187 @@
   <title> TODO webpage </title>
 </head>
 
+<!-- Table style -->
+<style>
+table {
+  font-family: arial, sans-serif;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+td, th {
+  border: 1px solid #dddddd;
+  text-align: left;
+  padding: 8px;
+}
+
+</style>
+
 <!-- koden begynne her -->
+ 
 <body>
 
     <h1> TODO List </h1>
 
     <p> In the list below are your TODO assignments</p>
-    <p id="input">This is a list</p>
 
+    <!-- Submittion Query to TODO list (POST) -->
+    <form action="/api/items" target="_blank" method="post" id="create">
+        <fieldset>
+            <legend>Submit Query:</legend>
+            <input type="text" id="submitText" placeholder="TODO query to submit" required>
+            <input type="submit" onclick="submitQuery()" value="Submit Query">
+        </fieldset>
+    </form>
+
+    <form id="getID" onsubmit="return submitID(event)">
+        <fieldset>
+            <legend>Get Query:</legend>
+            <input type="number" id="inputID" placeholder="Enter Query ID" min="1" required>
+            <button type="submit">Submit ID</button>
+        </fieldset>
+    </form>
+    
+    <form id="deleteID" onsubmit="return deleteID(event)">
+        <fieldset>
+            <legend>Delete ID:</legend>
+            <input type="number" id="IDtoDelete" placeholder="Enter Query ID" min="1" required>
+            <button type="submit">Submit ID</button>
+            <p id="deleteStatus"></p>
+        </fieldset>
+    </form>
+
+    <form>
+        <fieldset>
+            <legend>TODO list</legend>
+                <!-- Fetch button for TODO list (GET) -->
+                <button type="button" onclick="getText()"> Click to fetch whole list</button>
+
+                <!-- Tabell over TODOs -->
+                <table id="todo-table">
+                    <tr>
+                        <th> ID </th>
+                        <th> Name </th>
+                        <th> Done </th>
+                    </tr>
+                </table>
+        </fieldset>
+    </form>
+    <br>
+
+
+    
+    <!-- Function/scrips for functionality of HTML page -->
     <script>
-    getText()
-    async function getText() {
-        let myObject = await fetch("/api/items");
-        let myText = await myObject.text();
-        document.getElementById("input").innerHTML = myText;
+        async function deleteID(e){
+            e.preventDefault();
+            var numberID = document.getElementById("IDtoDelete").value.trim();
+            console.log("test");
+            console.log(numberID);
+
+            const response = await fetch(`/api/items/${encodeURIComponent(numberID)}`,
+                {
+                method: "delete",
+                headers: {
+                    "Content-type": "application/json"}
+                }
+            );
+            console.log(response);
+
+            const object = await response.json();
+            console.log(object);
+            var string = document.getElementById("deleteStatus");
+            string.innerHTML = "ID to be deleted returned:" + object.deleted
+
+        }
+
+
+        async function submitID(e){
+            e.preventDefault();
+            var numberID = document.getElementById("inputID").value.trim();
+            console.log("test");
+            console.log(numberID);
+
+            const response = await fetch(`/api/items/${encodeURIComponent(numberID)}`);
+            console.log(response)
+
+            const object = await response.json();
+            console.log(object)
+
+            let item = object.item;
+            console.log(item)
+
+            const table = document.getElementById('todo-table');
+
+            table.innerHTML = '';
+            let text = "<tr><th> ID </th><th> Name </th><th> Done </th></tr>"
+            text += "<tr><td>"+item.id+"</td>" + "<td>"+item.name+"</td>" + "<td>"+item.done+"</td></tr>";
+            table.innerHTML = text;
+
+
+        }
+
+        async function submitQuery() {
+            // Henter daten fra tekstboksen
+            var name = document.getElementById("submitText").value;
+            
+            // Respondere riktig til server
+            const response = await fetch("/api/items", 
+                {
+                method: "post",
+                body: JSON.stringify({name}),
+                headers: {
+                    "Content-type": "application/json"}
+                }
+            )
+
+            // Venter på svar
+            console.log(response);
+            const object = await response.json();
+            let item = object.item;
+            
+            // Legger til responsen til listen
+            const table = document.getElementById('todo-table');
+            // if (!table){
+                // Må legge til slik at hvis det er ingen i tabellen så må headers lage
+            // }
+            table.innerHTML = '';
+            let text = "<tr><th> ID </th><th> Name </th><th> Done </th></tr>"
+            text += "<tr><td>"+item.id+"</td>" + "<td>"+item.name+"</td>" + "<td>"+item.done+"</td></tr>";
+            table.innerHTML = text;
+            
+            
+        }
+
+        async function getText() {
+
+            // Henter API inn av liste på server
+            const myObject = await fetch("/api/items");
+            
+            // tar ut objectet som json
+            const myJson = await myObject.json();
+            
+            // Henter tabell og resetter den til null
+            const table = document.getElementById('todo-table');
+            table.innerHTML = '';
+
+            // Henter inn informasjon og lager string
+            let text = "<tr><th> ID </th><th> Name </th><th> Done </th></tr>"
+            for (const item of myJson.items){ 
+                text += "<tr>";
+                text += "<td>"+item.id+"</td>" + "<td>"+item.name+"</td>" + "<td>"+item.done+"</td>";
+                text += "<tr>";
+            } 
+            
+            // Setter string inn i tabell
+            table.innerHTML = text;
+        
     }
     </script>
 
 
-    
 
 
-
-
-<!-- 
-    <ul>
-        {% for item in items %}
-        <li data-id="{{item.id}}">
-            <input type="checkbox" {% if item.done %}checked{% endif %} disabled>
-            <span>{{ item.name }}</span>
-        </li>
-        {% else %}
-            <li><em>No items yet.</em></li>
-        {% endfor %}
-
-    </ul> -->
-
-<!-- 
-<button type="button" onclick="myFunction()">Click Me!</button>
-
-<p id="demo">This is a demonstration.</p>
-
-
-<button type="button"
-onclick=fetchData()>
-Click me to get data</button>
-<p id="demo">Data comes here </p>
-
-
- -->
-
-<!-- <script>
-    function myFunction() { 
-        document.getElementById("demo").innerText = "Hello JavaScript!";
-        }
-
-    function fetchData() {
-
-
-        }
-
-</script> -->
 
 </body>
 
