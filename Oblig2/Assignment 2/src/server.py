@@ -51,11 +51,11 @@ def bad_request_error(error):
 
 @app.route("/", methods=["GET"])
 def index():
-    return render_template('index.html', items=items)
+    return render_template('index.html')
 
-@app.route("/index_aug", methods=["GET"])
-def index_aug():
-    return render_template('index_aug.html')
+@app.route("/index.html", methods=["GET"])
+def index_html():
+    return render_template('index.html')
 
 
 @app.route("/api/items/", methods=["GET"])

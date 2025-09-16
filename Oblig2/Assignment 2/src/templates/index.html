@@ -34,11 +34,13 @@ td, th {
     <p> In the list below are your TODO assignments</p>
 
     <!-- Submittion Query to TODO list (POST) -->
-    <form action="/api/items" target="_blank" method="post" id="create">
+    <form id="create" onsubmit="return submitQuery(event)">
         <fieldset>
             <legend>Submit Query:</legend>
-            <input type="text" id="submitText" placeholder="TODO query to submit" required>
-            <input type="submit" onclick="submitQuery()" value="Submit Query">
+            <input type="text" id="submitText" placeholder="TODO query to submit" min="1" required>
+            <button type="submit">Submit Query</button>
+            <p>Submit query text to insert into TODO list.</p>
+            <p id="submitStatus"></p>
         </fieldset>
     </form>
 
@@ -47,15 +49,19 @@ td, th {
             <legend>Get Query:</legend>
             <input type="number" id="inputID" placeholder="Enter Query ID" min="1" required>
             <button type="submit">Submit ID</button>
+            <p>Submit query ID fetch from list.</p>
+            <p id="getStatus"></p>
         </fieldset>
     </form>
 
     <form id="changeID" onsubmit="return putID(event)">
         <fieldset>
             <legend>Change ID:</legend>
-            <input type="number" id="IDtoPut" placeholder="Enter Query ID" min="1" required>
-            <input type="text" id="TexttoPut" placeholder="New TODO query" required>
+            <input type="number" id="IDtoPut" placeholder="Enter Query ID" min="1" required/>
+            <input type="text" id="TexttoPut" placeholder="New TODO query" min="1" required/>
             <button type="submit">Submit ID</button>
+            <p>Submit query ID to change from list.</p>
+            <p id="putStatus"></p>
         </fieldset>
     </form>
     
@@ -64,6 +70,7 @@ td, th {
             <legend>Delete ID:</legend>
             <input type="number" id="IDtoDelete" placeholder="Enter Query ID" min="1" required>
             <button type="submit">Submit ID</button>
+            <p>Submit query ID to delete from list.</p>
             <p id="deleteStatus"></p>
         </fieldset>
     </form>
@@ -72,8 +79,9 @@ td, th {
         <fieldset>
             <legend>TODO list</legend>
                 <!-- Fetch button for TODO list (GET) -->
-                <button type="button" onclick="getText()"> Click to fetch whole list</button>
-                <button type="button" onclick="removeList()"> Click to remove whole list</button>
+                <button type="button" onclick="getText()"> Click to fetch list</button>
+                <button type="button" onclick="removeList()"> Click to remove list</button>
+                <p id="getAllStatus"></p>
 
                 <!-- Tabell over TODOs -->
                 <table id="todo-table">
@@ -91,14 +99,56 @@ td, th {
     
     <!-- Function/scrips for functionality of HTML page -->
     <script>
-        async function removeList(){
-
-            const table = document.getElementById('todo-table');
-            table.innerHTML = '';
-            let text = "<tr><th> ID </th><th> Name </th><th> Done </th></tr>";
-            table.innerHTML += text;
+        function activityDone(id){
+            console.log(id)
         }
 
+        function checkbox(item){
+            if (item.done == false){
+                let text = "<td><input type=\"checkbox\" id=\"check"+ item.id + "\" onclick=activityDone(id)/></td></tr>"
+                return text;
+            }
+            else {
+                let text = "<td><input type=\"checkbox\" id=\"1\" checked/></td></tr>"
+                return text
+            }
+        }
+
+        function tabelHeaders(){
+            let header = "<tr><th> ID </th><th> Name </th><th> Done </th></tr>"
+            return header;
+        }
+
+        // Submit Query POST function
+        async function submitQuery(e) {
+            e.preventDefault();
+            var name = document.getElementById("submitText").value; // data from client input
+            // Respondere riktig til server
+            const response = await fetch("/api/items", // Sends to server
+                {
+                method: "post",
+                body: JSON.stringify({name}),
+                headers: {
+                    "Content-type": "application/json"}
+                }
+            )
+            const object = await response.json(); // waits on response from server
+
+            const status = document.getElementById('submitStatus');
+            if (!object.item){ // in case of error from server side
+                status.innerHTML = object.Description; 
+                return false;
+            }
+            status.innerHTML = ""; // Resetting text in case of earlier error code
+
+            const table = document.getElementById('todo-table'); // Inserts response from server to table
+            table.innerHTML = '';
+            let text = tabelHeaders()
+            text += "<tr><td>"+object.item.id+"</td>" + "<td>"+object.item.name+"</td>" + "<td>"+object.item.done+"</td></tr>";
+            table.innerHTML = text;    
+        }
+        
+        // Change Query / ID PUT function
         async function putID(e){
             e.preventDefault();
             var numberID = document.getElementById("IDtoPut").value.trim();
@@ -113,127 +163,106 @@ td, th {
                     "Content-type": "application/json"}
                 }
             )
-
-            console.log(response);
             const object = await response.json();
+            const status = document.getElementById('putStatus');
+            if (!object.item){
+                status.innerHTML = object.Description;
+                return false;
+            }
+            status.innerHTML = ""; // resetting text in case of earlier error code
             let item = object.item;
-            
-            // Legger til responsen til listen
             const table = document.getElementById('todo-table');
-            // if (!table){
-                // Må legge til slik at hvis det er ingen i tabellen så må headers lage
-            // }
             table.innerHTML = '';
-            let text = "<tr><th> ID </th><th> Name </th><th> Done </th></tr>"
+            let text = tabelHeaders()
             text += "<tr><td>"+item.id+"</td>" + "<td>"+item.name+"</td>" + "<td>"+item.done+"</td></tr>";
             table.innerHTML = text;
 
         }
 
+        // Delete Query / ID function
         async function deleteID(e){
             e.preventDefault();
             var numberID = document.getElementById("IDtoDelete").value.trim();
-            console.log("test");
-            console.log(numberID);
-
-            const response = await fetch(`/api/items/${encodeURIComponent(numberID)}`,
+            const response = await fetch(`/api/items/${encodeURIComponent(numberID)}`, // Sending request to server
                 {
                 method: "delete",
                 headers: {
                     "Content-type": "application/json"}
                 }
             );
-            console.log(response);
-
             const object = await response.json();
-            console.log(object);
+            const status = document.getElementById('deleteStatus');
+            if (!object.deleted){
+                status.innerHTML = object.Description;
+                return false;
+            }
+            status.innerHTML = ""; // resetting text in case of earlier error code
             var string = document.getElementById("deleteStatus");
-            string.innerHTML = "ID to be deleted returned: " + object.deleted
+            string.innerHTML = "ID to be deleted returned: " + object.deleted;
+            getText();
 
         }
 
-
+        // Get Query / Submit ID GET function
         async function submitID(e){
             e.preventDefault();
             var numberID = document.getElementById("inputID").value.trim();
-            console.log("test");
-            console.log(numberID);
-
             const response = await fetch(`/api/items/${encodeURIComponent(numberID)}`);
-            console.log(response)
-
             const object = await response.json();
-            console.log(object)
-
+            const status = document.getElementById('getStatus');
+            if (!object.item){
+                status.innerHTML = object.Description;
+                return false
+            }
+            status.innerHTML = ""; // resetting text in case of earlier error code
             let item = object.item;
-            console.log(item)
-
             const table = document.getElementById('todo-table');
-
             table.innerHTML = '';
-            let text = "<tr><th> ID </th><th> Name </th><th> Done </th></tr>"
-            text += "<tr><td>"+item.id+"</td>" + "<td>"+item.name+"</td>" + "<td>"+item.done+"</td></tr>";
+
+            let text = tabelHeaders()
+            let doneStatus = checkbox(item)
+            text += "<tr><td>"+item.id+"</td>" + "<td>"+item.name+"</td>" + doneStatus;
             table.innerHTML = text;
 
 
         }
 
-        async function submitQuery() {
-            // Henter daten fra tekstboksen
-            var name = document.getElementById("submitText").value;
-            
-            // Respondere riktig til server
-            const response = await fetch("/api/items", 
-                {
-                method: "post",
-                body: JSON.stringify({name}),
-                headers: {
-                    "Content-type": "application/json"}
-                }
-            )
-
-            // Venter på svar
-            console.log(response);
-            const object = await response.json();
-            let item = object.item;
-            
-            // Legger til responsen til listen
-            const table = document.getElementById('todo-table');
-            // if (!table){
-                // Må legge til slik at hvis det er ingen i tabellen så må headers lage
-            // }
-            table.innerHTML = '';
-            let text = "<tr><th> ID </th><th> Name </th><th> Done </th></tr>"
-            text += "<tr><td>"+item.id+"</td>" + "<td>"+item.name+"</td>" + "<td>"+item.done+"</td></tr>";
-            table.innerHTML = text;
-            
-            
-        }
-
+        // GET list from server to HTTP client ("click to fetch list" button)
         async function getText() {
 
             // Henter API inn av liste på server
-            const myObject = await fetch("/api/items");
+            const response = await fetch("/api/items");
             
             // tar ut objectet som json
-            const myJson = await myObject.json();
+            const object = await response.json();
+            const status = document.getElementById('getAllStatus');
+            if (!object.items){
+                status.innerHTML = object.Message;
+                return false;
+            }
+            status.innerHTML = ""; // resetting text in case of earlier error code
             
             // Henter tabell og resetter den til null
             const table = document.getElementById('todo-table');
             table.innerHTML = '';
 
             // Henter inn informasjon og lager string
-            let text = "<tr><th> ID </th><th> Name </th><th> Done </th></tr>"
-            for (const item of myJson.items){ 
+            let text = tabelHeaders()
+            for (const item of object.items){ 
+                let doneStatus = checkbox(item)
                 text += "<tr>";
                 text += "<td>"+item.id+"</td>" + "<td>"+item.name+"</td>" + "<td>"+item.done+"</td>";
                 text += "<tr>";
             } 
-            
             // Setter string inn i tabell
             table.innerHTML = text;
-        
-    }
+        }
+        // Removes list on HTTP side, not on server side ("click to remove list" button)
+        async function removeList(){
+            const table = document.getElementById('todo-table');
+            let text = tabelHeaders()
+            table.innerHTML = text;
+        }
     </script>
 
 
