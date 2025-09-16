@@ -24,8 +24,6 @@ td, th {
 
 </style>
 
-<!-- koden begynne her -->
- <!-- TODO: Må ha en knapp for å endre hver query til å være gjennomført eller ikke -->
  
 <body>
 
@@ -81,7 +79,6 @@ td, th {
                 <!-- Fetch button for TODO list (GET) -->
                 <button type="button" onclick="getText()"> Click to fetch list</button>
                 <button type="button" onclick="removeList()"> Click to remove list</button>
-                <!-- <input type="checkbox" id="1" onclick=activityDone(id,checked) name="checkbox"> -->
                 <p id="getAllStatus"></p>
 
                 <!-- Tabell over TODOs -->
@@ -96,9 +93,8 @@ td, th {
     </form>
     <br>
 
-
-    
     <!-- Function/scrips for functionality of HTML page -->
+
     <script>
         function createTable(object){ // Helper function for creating table of server Object
 
@@ -106,11 +102,11 @@ td, th {
             table.innerHTML = '';
             let text = tabelHeaders()
 
-            if (object.item){
+            if (object.item){ // If just one item from server
             let doneStatus = checkbox(object.item)
                 text += "<tr><td>"+object.item.id+"</td>" + "<td>"+object.item.name+"</td>" + doneStatus
             }
-            else if (object.items){
+            else if (object.items){ // if more items from server
                 for (const item of object.items){ 
                     let doneStatus = checkbox(item)
                     text += "<tr><td>"+item.id+"</td>" + "<td>"+item.name+"</td>" + doneStatus;
@@ -119,9 +115,7 @@ td, th {
             table.innerHTML = text;              
         }
 
-        async function activityDone(id, done){
-            console.log(id)
-            console.log(done)
+        async function activityDone(id, done){  // Sends PUT request to server about done status of query
             const response = await fetch(`/api/items/${encodeURIComponent(id)}`, // Sends to server
                 {
                 method: "put",
@@ -151,7 +145,7 @@ td, th {
             }
         }
 
-        function tabelHeaders(){ // Header function
+        function tabelHeaders(){ // Header function for creating table
             let header = "<tr><th> ID </th><th> Name </th><th> Done </th></tr>"
             return header;
         }
@@ -180,8 +174,7 @@ td, th {
             createTable(object)
         }
         
-        // Change Query / ID PUT function
-        async function putID(e){
+        async function putID(e){ // Change Query / ID PUT function
             e.preventDefault();
             var numberID = document.getElementById("IDtoPut").value.trim();
             var name = document.getElementById("TexttoPut").value;
@@ -206,8 +199,7 @@ td, th {
 
         }
 
-        // Delete Query / ID function
-        async function deleteID(e){
+        async function deleteID(e){ // Delete Query / ID function
             e.preventDefault();
             var numberID = document.getElementById("IDtoDelete").value.trim();
             const response = await fetch(`/api/items/${encodeURIComponent(numberID)}`, // Sending request to server
@@ -225,13 +217,12 @@ td, th {
             }
             status.innerHTML = ""; // resetting text in case of earlier error code
             var string = document.getElementById("deleteStatus");
-            string.innerHTML = "ID to be deleted returned: " + object.deleted;
+            string.innerHTML = "ID to be deleted returned: " + object.deleted; // Status string about deletion
             getText();
 
         }
 
-        // Get Query / Submit ID GET function
-        async function submitID(e){
+        async function submitID(e){ // Get Query / Submit ID GET function
             e.preventDefault();
             var numberID = document.getElementById("inputID").value.trim();
             const response = await fetch(`/api/items/${encodeURIComponent(numberID)}`);
@@ -245,13 +236,10 @@ td, th {
             createTable(object)
         }
 
-        // GET list from server to HTTP client ("click to fetch list" button)
-        async function getText() {
-
-            // Henter API inn av liste på server
+        
+        async function getText() { // GET list from server to HTTP client ("click to fetch list" button)
             const response = await fetch("/api/items");
-            
-            // tar ut objectet som json
+
             const object = await response.json();
             const status = document.getElementById('getAllStatus');
             if (!object.items){
