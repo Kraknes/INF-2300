@@ -35,7 +35,7 @@ td, th {
     <form id="create" onsubmit="return submitQuery(event)">
         <fieldset>
             <legend>Submit Query:</legend>
-            <input type="text" id="submitText" placeholder="TODO query to submit" min="1" required>
+            <input type="text" id="submitText" placeholder="TODO query to submit" autocomplete="off" min="1" required>
             <button type="submit">Submit Query</button>
             <p>Submit query text to insert into TODO list.</p>
             <p id="submitStatus"></p>
@@ -45,7 +45,7 @@ td, th {
     <form id="getID" onsubmit="return submitID(event)">
         <fieldset>
             <legend>Get Query:</legend>
-            <input type="number" id="inputID" placeholder="Enter Query ID" min="1" required>
+            <input type="number" id="inputID" placeholder="Enter Query ID" autocomplete="off" min="1" required>
             <button type="submit">Submit ID</button>
             <p>Submit query ID fetch from list.</p>
             <p id="getStatus"></p>
@@ -55,8 +55,8 @@ td, th {
     <form id="changeID" onsubmit="return putID(event)">
         <fieldset>
             <legend>Change ID:</legend>
-            <input type="number" id="IDtoPut" placeholder="Enter Query ID" min="1" required/>
-            <input type="text" id="TexttoPut" placeholder="New TODO query" min="1" required/>
+            <input type="number" id="IDtoPut" placeholder="Enter Query ID" autocomplete="off" min="1" required/>
+            <input type="text" id="TexttoPut" placeholder="New TODO query" autocomplete="off" min="1" required/>
             <button type="submit">Submit ID</button>
             <p>Submit query ID to change from list.</p>
             <p id="putStatus"></p>
@@ -66,7 +66,7 @@ td, th {
     <form id="deleteID" onsubmit="return deleteID(event)">
         <fieldset>
             <legend>Delete ID:</legend>
-            <input type="number" id="IDtoDelete" placeholder="Enter Query ID" min="1" required>
+            <input type="number" id="IDtoDelete" placeholder="Enter Query ID" autocomplete="off" min="1" required>
             <button type="submit">Submit ID</button>
             <p>Submit query ID to delete from list.</p>
             <p id="deleteStatus"></p>
