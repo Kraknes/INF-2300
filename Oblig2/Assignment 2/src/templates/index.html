@@ -81,6 +81,7 @@ td, th {
                 <!-- Fetch button for TODO list (GET) -->
                 <button type="button" onclick="getText()"> Click to fetch list</button>
                 <button type="button" onclick="removeList()"> Click to remove list</button>
+                <!-- <input type="checkbox" id="1" onclick=activityDone(id,checked) name="checkbox"> -->
                 <p id="getAllStatus"></p>
 
                 <!-- Tabell over TODOs -->
@@ -99,28 +100,64 @@ td, th {
     
     <!-- Function/scrips for functionality of HTML page -->
     <script>
-        function activityDone(id){
-            console.log(id)
+        function createTable(object){ // Helper function for creating table of server Object
+
+            const table = document.getElementById('todo-table'); // Getting table 
+            table.innerHTML = '';
+            let text = tabelHeaders()
+
+            if (object.item){
+            let doneStatus = checkbox(object.item)
+                text += "<tr><td>"+object.item.id+"</td>" + "<td>"+object.item.name+"</td>" + doneStatus
+            }
+            else if (object.items){
+                for (const item of object.items){ 
+                    let doneStatus = checkbox(item)
+                    text += "<tr><td>"+item.id+"</td>" + "<td>"+item.name+"</td>" + doneStatus;
+                } 
+            }
+            table.innerHTML = text;              
         }
 
-        function checkbox(item){
+        async function activityDone(id, done){
+            console.log(id)
+            console.log(done)
+            const response = await fetch(`/api/items/${encodeURIComponent(id)}`, // Sends to server
+                {
+                method: "put",
+                body: JSON.stringify({done}),
+                headers: {
+                    "Content-type": "application/json"}
+                }
+            )
+            const object = await response.json();
+            if (!object.item){
+                status.innerHTML = object.Description;
+                return false;
+            }
+            status.innerHTML = ""; // resetting text in case of earlier error code
+            createTable(object);
+
+        }
+
+        function checkbox(item){ // Creating checkbox for table
             if (item.done == false){
-                let text = "<td><input type=\"checkbox\" id=\"check"+ item.id + "\" onclick=activityDone(id)/></td></tr>"
+                let text = "<td><input type=\"checkbox\" id=\""+ item.id + "\" onclick=activityDone(id,checked)></td></tr>";
                 return text;
             }
             else {
-                let text = "<td><input type=\"checkbox\" id=\"1\" checked/></td></tr>"
-                return text
+                let text = "<td><input type=\"checkbox\" id=\""+ item.id + "\" onclick=activityDone(id,checked) checked></td></tr>";
+                return text;
             }
         }
 
-        function tabelHeaders(){
+        function tabelHeaders(){ // Header function
             let header = "<tr><th> ID </th><th> Name </th><th> Done </th></tr>"
             return header;
         }
 
-        // Submit Query POST function
-        async function submitQuery(e) {
+        
+        async function submitQuery(e) { // Submit Query POST function
             e.preventDefault();
             var name = document.getElementById("submitText").value; // data from client input
             // Respondere riktig til server
@@ -140,12 +177,7 @@ td, th {
                 return false;
             }
             status.innerHTML = ""; // Resetting text in case of earlier error code
-
-            const table = document.getElementById('todo-table'); // Inserts response from server to table
-            table.innerHTML = '';
-            let text = tabelHeaders()
-            text += "<tr><td>"+object.item.id+"</td>" + "<td>"+object.item.name+"</td>" + "<td>"+object.item.done+"</td></tr>";
-            table.innerHTML = text;    
+            createTable(object)
         }
         
         // Change Query / ID PUT function
@@ -170,12 +202,7 @@ td, th {
                 return false;
             }
             status.innerHTML = ""; // resetting text in case of earlier error code
-            let item = object.item;
-            const table = document.getElementById('todo-table');
-            table.innerHTML = '';
-            let text = tabelHeaders()
-            text += "<tr><td>"+item.id+"</td>" + "<td>"+item.name+"</td>" + "<td>"+item.done+"</td></tr>";
-            table.innerHTML = text;
+            createTable(object)
 
         }
 
@@ -215,16 +242,7 @@ td, th {
                 return false
             }
             status.innerHTML = ""; // resetting text in case of earlier error code
-            let item = object.item;
-            const table = document.getElementById('todo-table');
-            table.innerHTML = '';
-
-            let text = tabelHeaders()
-            let doneStatus = checkbox(item)
-            text += "<tr><td>"+item.id+"</td>" + "<td>"+item.name+"</td>" + doneStatus;
-            table.innerHTML = text;
-
-
+            createTable(object)
         }
 
         // GET list from server to HTTP client ("click to fetch list" button)
@@ -241,32 +259,20 @@ td, th {
                 return false;
             }
             status.innerHTML = ""; // resetting text in case of earlier error code
+            createTable(object)
+
+        }
+        
+        async function removeList(){ // Removes list on HTTP side, not on server side ("click to remove list" button)
+            const table = document.getElementById('todo-table');
+            let text = tabelHeaders()
+            table.innerHTML = text;
+        }
+        
+        </script>
+
             
-            // Henter tabell og resetter den til null
-            const table = document.getElementById('todo-table');
-            table.innerHTML = '';
-
-            // Henter inn informasjon og lager string
-            let text = tabelHeaders()
-            for (const item of object.items){ 
-                let doneStatus = checkbox(item)
-                text += "<tr>";
-                text += "<td>"+item.id+"</td>" + "<td>"+item.name+"</td>" + "<td>"+item.done+"</td>";
-                text += "<tr>";
-            } 
-            // Setter string inn i tabell
-            table.innerHTML = text;
-        }
-        // Removes list on HTTP side, not on server side ("click to remove list" button)
-        async function removeList(){
-            const table = document.getElementById('todo-table');
-            let text = tabelHeaders()
-            table.innerHTML = text;
-        }
-    </script>
-
-
-
+            
 
 
 </body>
