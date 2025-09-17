@@ -81,7 +81,7 @@ def create_item():
     if not isinstance(request.json["name"], str):
         description = f"'name'-field must be str."
         abort(400, description)
-    new_id = 0 if not items else max(item["id"] for item in items) + 1
+    new_id = 1 if not items else max(item["id"] for item in items) + 1
     item = {"id": new_id, "name": request.json["name"], "done": False}
     items.append(item)
     return jsonify({"item": item}), 201

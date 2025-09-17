@@ -47,7 +47,7 @@ td, th {
             <legend>Get Query:</legend>
             <input type="number" id="inputID" placeholder="Enter Query ID" autocomplete="off" min="1" required>
             <button type="submit">Submit ID</button>
-            <p>Submit query ID fetch from list.</p>
+            <p>Submit query ID to fetch from list.</p>
             <p id="getStatus"></p>
         </fieldset>
     </form>
@@ -246,6 +246,10 @@ td, th {
                 status.innerHTML = object.Message;
                 return false;
             }
+            else if(object.items.length == 0){
+                status.innerHTML = "Nothing to fetch, list is empty";
+                return false;
+            }
             status.innerHTML = ""; // resetting text in case of earlier error code
             createTable(object)
 
@@ -255,7 +259,25 @@ td, th {
             const table = document.getElementById('todo-table');
             let text = tabelHeaders()
             table.innerHTML = text;
-        }
+
+            const response = await fetch("/api/items");
+            const object = await response.json();
+            const status = document.getElementById('getAllStatus');
+            if (!object.items){
+                status.innerHTML = object.Message;
+                return false;
+            }
+            for (const item of object.items){ 
+                const response = await fetch(`/api/items/${encodeURIComponent(item.id)}`, // Sending delete request to server
+                    {
+                    method: "delete",
+                    headers: {
+                        "Content-type": "application/json"}
+                    }
+                );
+                } 
+            }
+        
         
         </script>
 
