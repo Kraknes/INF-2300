@@ -29,7 +29,22 @@ td, th {
 
     <h1> TODO List </h1>
 
-    <p> In the list below are your TODO assignments</p>
+    <p> This site will handle your TODO list. 
+        You will get six options to use on your TODO list</p>
+    <ol>
+        <li><b>Submit Query:</b></li>
+            <dd>Submits a new TODO query to the list of TODOs</dd> 
+        <li><b>Get Query:</b></li>
+            <dd>Submit the ID number of a TODO query to see it individually</dd>
+        <li><b>Change Query:</b></li>
+            <dd> Change an existing TODO with ID number</dd>
+        <li><b>Delete Query:</b> </li>
+            <dd>Submit the ID number of query to be deleted</dd>
+        <li><b>Click to fetch list:</b></li>
+            <dd>Show all TODOs in the TODO list</dd>
+        <li><b>Click to remove list:</b></li>
+            <dd>Will remove all TODOs in the list</dd>
+    </ol>
 
     <!-- Submittion Query to TODO list (POST) -->
     <form id="create" onsubmit="return submitQuery(event)">
@@ -54,7 +69,7 @@ td, th {
 
     <form id="changeID" onsubmit="return putID(event)">
         <fieldset>
-            <legend>Change ID:</legend>
+            <legend>Change Query:</legend>
             <input type="number" id="IDtoPut" placeholder="Enter Query ID" autocomplete="off" min="1" required/>
             <input type="text" id="TexttoPut" placeholder="New TODO query" autocomplete="off" min="1" required/>
             <button type="submit">Submit ID</button>
@@ -65,7 +80,7 @@ td, th {
     
     <form id="deleteID" onsubmit="return deleteID(event)">
         <fieldset>
-            <legend>Delete ID:</legend>
+            <legend>Delete Query:</legend>
             <input type="number" id="IDtoDelete" placeholder="Enter Query ID" autocomplete="off" min="1" required>
             <button type="submit">Submit ID</button>
             <p>Submit query ID to delete from list.</p>
@@ -154,7 +169,6 @@ td, th {
         async function submitQuery(e) { // Submit Query POST function
             e.preventDefault();
             var name = document.getElementById("submitText").value; // data from client input
-            // Respondere riktig til server
             const response = await fetch("/api/items", // Sends to server
                 {
                 method: "post",
@@ -239,7 +253,6 @@ td, th {
         
         async function getText() { // GET list from server to HTTP client ("click to fetch list" button)
             const response = await fetch("/api/items");
-
             const object = await response.json();
             const status = document.getElementById('getAllStatus');
             if (!object.items){
