@@ -1,0 +1,303 @@
+<!-- Viss vass -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title> TODO webpage </title>
+</head>
+
+<!-- Table style -->
+<style>
+table {
+  font-family: arial, sans-serif;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+td, th {
+  border: 1px solid #dddddd;
+  text-align: left;
+  padding: 8px;
+}
+
+</style>
+
+ 
+<body>
+
+    <h1> TODO List </h1>
+
+    <p> This site will handle your TODO list. 
+        You will get six options to use on your TODO list</p>
+    <ol>
+        <li><b>Submit Query:</b></li>
+            <dd>Submits a new TODO query to the list of TODOs</dd> 
+        <li><b>Get Query:</b></li>
+            <dd>Submit the ID number of a TODO query to see it individually</dd>
+        <li><b>Change Query:</b></li>
+            <dd> Change an existing TODO with ID number</dd>
+        <li><b>Delete Query:</b> </li>
+            <dd>Submit the ID number of query to be deleted</dd>
+        <li><b>Click to fetch list:</b></li>
+            <dd>Show all TODOs in the TODO list</dd>
+        <li><b>Click to remove list:</b></li>
+            <dd>Will remove all TODOs in the list</dd>
+    </ol>
+
+    <!-- Submittion Query to TODO list (POST) -->
+    <form id="create" onsubmit="return submitQuery(event)">
+        <fieldset>
+            <legend>Submit Query:</legend>
+            <input type="text" id="submitText" placeholder="TODO query to submit" autocomplete="off" min="1" required>
+            <button type="submit">Submit Query</button>
+            <p>Submit query text to insert into TODO list.</p>
+            <p id="submitStatus"></p>
+        </fieldset>
+    </form>
+
+    <form id="getID" onsubmit="return submitID(event)">
+        <fieldset>
+            <legend>Get Query:</legend>
+            <input type="number" id="inputID" placeholder="Enter Query ID" autocomplete="off" min="1" required>
+            <button type="submit">Submit ID</button>
+            <p>Submit query ID to fetch from list.</p>
+            <p id="getStatus"></p>
+        </fieldset>
+    </form>
+
+    <form id="changeID" onsubmit="return putID(event)">
+        <fieldset>
+            <legend>Change Query:</legend>
+            <input type="number" id="IDtoPut" placeholder="Enter Query ID" autocomplete="off" min="1" required/>
+            <input type="text" id="TexttoPut" placeholder="New TODO query" autocomplete="off" min="1" required/>
+            <button type="submit">Submit ID</button>
+            <p>Submit query ID to change from list.</p>
+            <p id="putStatus"></p>
+        </fieldset>
+    </form>
+    
+    <form id="deleteID" onsubmit="return deleteID(event)">
+        <fieldset>
+            <legend>Delete Query:</legend>
+            <input type="number" id="IDtoDelete" placeholder="Enter Query ID" autocomplete="off" min="1" required>
+            <button type="submit">Submit ID</button>
+            <p>Submit query ID to delete from list.</p>
+            <p id="deleteStatus"></p>
+        </fieldset>
+    </form>
+
+    <form>
+        <fieldset>
+            <legend>TODO list</legend>
+                <!-- Fetch button for TODO list (GET) -->
+                <button type="button" onclick="getText()"> Click to fetch list</button>
+                <button type="button" onclick="removeList()"> Click to remove list</button>
+                <p id="getAllStatus"></p>
+
+                <!-- Tabell over TODOs -->
+                <table id="todo-table">
+                    <tr>
+                        <th> ID </th>
+                        <th> Name </th>
+                        <th> Done </th>
+                    </tr>
+                </table>
+        </fieldset>
+    </form>
+    <br>
+
+    <!-- Function/scrips for functionality of HTML page -->
+
+    <script>
+        function createTable(object){ // Helper function for creating table of server Object
+
+            const table = document.getElementById('todo-table'); // Getting table 
+            table.innerHTML = '';
+            let text = tabelHeaders()
+
+            if (object.item){ // If just one item from server
+            let doneStatus = checkbox(object.item)
+                text += "<tr><td>"+object.item.id+"</td>" + "<td>"+object.item.name+"</td>" + doneStatus
+            }
+            else if (object.items){ // if more items from server
+                for (const item of object.items){ 
+                    let doneStatus = checkbox(item)
+                    text += "<tr><td>"+item.id+"</td>" + "<td>"+item.name+"</td>" + doneStatus;
+                } 
+            }
+            table.innerHTML = text;              
+        }
+
+        async function activityDone(id, done){  // Sends PUT request to server about done status of query
+            const response = await fetch(`/api/items/${encodeURIComponent(id)}`, // Sends to server
+                {
+                method: "put",
+                body: JSON.stringify({done}),
+                headers: {
+                    "Content-type": "application/json"}
+                }
+            )
+            const object = await response.json();
+            if (!object.item){
+                status.innerHTML = object.Description;
+                return false;
+            }
+            status.innerHTML = ""; // resetting text in case of earlier error code
+            createTable(object);
+
+        }
+
+        function checkbox(item){ // Creating checkbox for table
+            if (item.done == false){
+                let text = "<td><input type=\"checkbox\" id=\""+ item.id + "\" onclick=activityDone(id,checked)></td></tr>";
+                return text;
+            }
+            else {
+                let text = "<td><input type=\"checkbox\" id=\""+ item.id + "\" onclick=activityDone(id,checked) checked></td></tr>";
+                return text;
+            }
+        }
+
+        function tabelHeaders(){ // Header function for creating table
+            let header = "<tr><th> ID </th><th> Name </th><th> Done </th></tr>"
+            return header;
+        }
+
+        
+        async function submitQuery(e) { // Submit Query POST function
+            e.preventDefault();
+            var name = document.getElementById("submitText").value; // data from client input
+            const response = await fetch("/api/items", // Sends to server
+                {
+                method: "post",
+                body: JSON.stringify({name}),
+                headers: {
+                    "Content-type": "application/json"}
+                }
+            )
+            const object = await response.json(); // waits on response from server
+
+            const status = document.getElementById('submitStatus');
+            if (!object.item){ // in case of error from server side
+                status.innerHTML = object.Description; 
+                return false;
+            }
+            status.innerHTML = ""; // Resetting text in case of earlier error code
+            createTable(object)
+        }
+        
+        async function putID(e){ // Change Query / ID PUT function
+            e.preventDefault();
+            var numberID = document.getElementById("IDtoPut").value.trim();
+            var name = document.getElementById("TexttoPut").value;
+            
+            // Respondere riktig til server
+            const response = await fetch(`/api/items/${encodeURIComponent(numberID)}`,
+                {
+                method: "put",
+                body: JSON.stringify({name}),
+                headers: {
+                    "Content-type": "application/json"}
+                }
+            )
+            const object = await response.json();
+            const status = document.getElementById('putStatus');
+            if (!object.item){
+                status.innerHTML = object.Description;
+                return false;
+            }
+            status.innerHTML = ""; // resetting text in case of earlier error code
+            createTable(object)
+
+        }
+
+        async function deleteID(e){ // Delete Query / ID function
+            e.preventDefault();
+            var numberID = document.getElementById("IDtoDelete").value.trim();
+            const response = await fetch(`/api/items/${encodeURIComponent(numberID)}`, // Sending request to server
+                {
+                method: "delete",
+                headers: {
+                    "Content-type": "application/json"}
+                }
+            );
+            const object = await response.json();
+            const status = document.getElementById('deleteStatus');
+            if (!object.deleted){
+                status.innerHTML = object.Description;
+                return false;
+            }
+            status.innerHTML = ""; // resetting text in case of earlier error code
+            var string = document.getElementById("deleteStatus");
+            string.innerHTML = "ID to be deleted returned: " + object.deleted; // Status string about deletion
+            getText();
+
+        }
+
+        async function submitID(e){ // Get Query / Submit ID GET function
+            e.preventDefault();
+            var numberID = document.getElementById("inputID").value.trim();
+            const response = await fetch(`/api/items/${encodeURIComponent(numberID)}`);
+            const object = await response.json();
+            const status = document.getElementById('getStatus');
+            if (!object.item){
+                status.innerHTML = object.Description;
+                return false
+            }
+            status.innerHTML = ""; // resetting text in case of earlier error code
+            createTable(object)
+        }
+
+        
+        async function getText() { // GET list from server to HTTP client ("click to fetch list" button)
+            const response = await fetch("/api/items");
+            const object = await response.json();
+            const status = document.getElementById('getAllStatus');
+            if (!object.items){
+                status.innerHTML = object.Message;
+                return false;
+            }
+            else if(object.items.length == 0){
+                status.innerHTML = "Nothing to fetch, list is empty";
+                return false;
+            }
+            status.innerHTML = ""; // resetting text in case of earlier error code
+            createTable(object)
+
+        }
+        
+        async function removeList(){ // Removes list on HTTP side, not on server side ("click to remove list" button)
+            const table = document.getElementById('todo-table');
+            let text = tabelHeaders()
+            table.innerHTML = text;
+
+            const response = await fetch("/api/items");
+            const object = await response.json();
+            const status = document.getElementById('getAllStatus');
+            if (!object.items){
+                status.innerHTML = object.Message;
+                return false;
+            }
+            for (const item of object.items){ 
+                const response = await fetch(`/api/items/${encodeURIComponent(item.id)}`, // Sending delete request to server
+                    {
+                    method: "delete",
+                    headers: {
+                        "Content-type": "application/json"}
+                    }
+                );
+                } 
+            }
+        
+        
+        </script>
+
+            
+            
+
+
+</body>
+
+</html>
