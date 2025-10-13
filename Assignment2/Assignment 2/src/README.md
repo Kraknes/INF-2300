@@ -42,7 +42,6 @@ python3 server.py
 Server on http://localhost:8080
 
 
-
 ## Deployment
 
 To deploy the server run the following in the directory of the server.py file:
