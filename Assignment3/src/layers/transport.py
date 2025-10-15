@@ -2,6 +2,8 @@ from copy import copy
 from threading import Timer
 
 from packet import Packet
+import hashlib
+
 
 
 class TransportLayer:
@@ -12,6 +14,10 @@ class TransportLayer:
     def __init__(self):
         self.timer = None
         self.timeout = 0.4  # Seconds
+        self.packetBuffer = []
+        self.packetOut = []
+        self.packetTot = []
+        self.packConfirmed = 0
 
     def with_logger(self, logger):
         self.logger = logger
@@ -23,16 +29,108 @@ class TransportLayer:
     def register_below(self, layer):
         self.network_layer = layer
 
+    ## Created by student, timer to send all packets in list
+    def send_packets(self, packetList):
+        print(f"Time limit! Resending packets from {self.logger.name}")
+        if self.packConfirmed == 10 and self.timer:
+            self.timer.cancel()
+            self.timer = None
+            return
+        for x in packetList:
+            # print(f"Resending {x}!")
+            self.network_layer.send(x)
+        self.reset_timer(self.send_packets, (packetList,))
+
+    ## Created by student, checksum calculcation for packets
+    def checksum_calculation(self, binary_data):
+        hasher = hashlib.sha256(binary_data)
+        hasher = hasher.hexdigest()
+        return hasher
+    
+    ## Created by student, sorting of list
+    def sortFunc(self, item):
+        return item.number
+    
+
     def from_app(self, binary_data):
-        packet = Packet(binary_data)
-
         # Implement me!
+        number = len(self.packetTot)
+        checksum = self.checksum_calculation(binary_data)
+        packet = Packet(binary_data, number, checksum)
+        self.packetTot.append(packet)
 
-        self.network_layer.send(packet)
+        # Adds packet to send out or to buffer list
+        if len(self.packetOut) <= 5: # If list is less < 5 (only the five first of all packets)
+            self.packetOut.append(packet)
+            print(f"{self.logger.name} sends {packet}!")
+            self.network_layer.send(packet) # Sends packet
+        else:
+            print(f"{self.logger.name} adds {packet} to buffer list!")
+            self.packetBuffer.append(packet)
+            
+        if self.timer == None:
+            self.timer = self.reset_timer(self.send_packets, (self.packetOut,))
 
     def from_network(self, packet):
-        self.application_layer.receive_from_transport(packet.data)
         # Implement me!
+        # print(f"{self.logger.name} has received {packet}!")
+        decoded_data = packet.data.decode()
+
+        # If ACK from Bob
+        if decoded_data == 'ACK':
+            for x in self.packetOut:
+                if x.number == packet.number: # Removes packet from memory
+                    self.packetOut.remove(x)
+                    self.packConfirmed += 1
+                    # print(f"{x} removed from {self.logger.name} packetOut list!")
+                    if len(self.packetBuffer) > 0:
+                        for x in self.packetBuffer:
+                            self.packetOut.append(x)
+                            self.packetBuffer.remove(x)
+                            print(f"Added packet {x} to self.packetOut")
+                            print(f"Removed packet data {x} from self.packetBuffer")
+                    self.reset_timer(self.send_packets, (self.packetOut,)) # Resets timer
+ 
+        # If NACK from Bob              
+        elif decoded_data == 'NACK': 
+             for x in self.packetOut:
+                if x.number == packet.number: # Removes packet from memory
+                    self.network_layer.send(x) # Sends packet
+       
+        # If Data from Alice
+        else: 
+            checksum = self.checksum_calculation(packet.data)
+            if checksum == packet.checksum:
+                data_present = False
+                for x in self.packetTot:
+                    if x.number == packet.number:
+                        data_present = True
+                        break
+                if not data_present:
+                    self.packetTot.append(packet) # puts packet in list
+                    
+                self.packetTot.sort(key=self.sortFunc)
+                for x in self.packetTot:
+                    if x.number == self.packConfirmed:
+                        print(f"{self.logger.name} has sendt {x} to Application")
+                        self.packConfirmed += 1
+                        self.application_layer.receive_from_transport(x.data)
+                        
+                # Acknowledgement packet send
+                data = b'ACK'
+                ack = Packet(data, packet.number, self.checksum_calculation(data))
+                # print(f"{self.logger.name} sends ACK for {packet}!")
+                self.network_layer.send(ack)
+
+            else:
+                # Corrupted, sends a NACK back. 
+                data = b'NACK'
+                nack = Packet(data, packet.number, self.checksum_calculation(data))
+                # print(f"{self.logger.name} sends NACK for {packet}!")
+                self.network_layer.send(nack)
+
+
+
 
     def reset_timer(self, callback, *args):
         # This is a safety-wrapper around the Timer-objects, which are

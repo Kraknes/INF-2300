@@ -10,11 +10,13 @@ These files include such as:
 ## File layout
 ```bash
 server root/
-  - server.py
-  - templates/
-     index.html
+  - requirements.txt
+  - README.md
+  - /src/
+  - - server.py
+  - - /templates/
+  - - - index.html
 ```
-
 
 ## Requirements
 
@@ -24,13 +26,14 @@ server root/
 
 ### Installation of Flask
 #### Create & activate a virtual env (optional)
-```bash python -m venv .venv
+```bash 
+python3 -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 ```
 
 #### Install deps
 ```bash
-pip install Flask flask-cors
+pip install -r requirements.txt
 ```
 
 
@@ -40,7 +43,6 @@ python3 server.py
 ```
 
 Server on http://localhost:8080
-
 
 
 ## Deployment

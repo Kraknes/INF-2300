@@ -55,3 +55,4 @@ if __name__ == "__main__":
     sim = Sim()
     sim.run()
     print("Finished!")
+# b'KQCKRBWWNCOCOBSUZYNKWLUHPRVYTDQZWINBNHIA'
