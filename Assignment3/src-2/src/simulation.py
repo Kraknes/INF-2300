@@ -41,7 +41,7 @@ class Sim:
         # We continue so long as the data isn't received
         return self.bob.received != self.alice.original_data
 
-    def run(self):  
+    def run(self):
         # This is the main program loop
         while self.should_continue():
             self.alice.tick()
@@ -55,4 +55,3 @@ if __name__ == "__main__":
     sim = Sim()
     sim.run()
     print("Finished!")
-

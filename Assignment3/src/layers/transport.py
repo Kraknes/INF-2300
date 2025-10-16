@@ -18,6 +18,7 @@ class TransportLayer:
         self.packetOut = []
         self.packetTot = []
         self.packConfirmed = 0
+        self.next_pck_nr = 0
 
     def with_logger(self, logger):
         self.logger = logger
@@ -29,18 +30,6 @@ class TransportLayer:
     def register_below(self, layer):
         self.network_layer = layer
 
-    ## Created by student, timer to send all packets in list
-    def send_packets(self, packetList):
-        print(f"Time limit! Resending packets from {self.logger.name}")
-        if self.packConfirmed == 10 and self.timer:
-            self.timer.cancel()
-            self.timer = None
-            return
-        for x in packetList:
-            # print(f"Resending {x}!")
-            self.network_layer.send(x)
-        self.reset_timer(self.send_packets, (packetList,))
-
     ## Created by student, checksum calculcation for packets
     def checksum_calculation(self, binary_data):
         hasher = hashlib.sha256(binary_data)
@@ -51,10 +40,22 @@ class TransportLayer:
     def sortFunc(self, item):
         return item.number
     
+    ## Created by student, timer to send all packets in list
+    def resend_packets(self, packetList):
+        print(f"{self.logger.name} Time limit! Resending packet.")
+        if len(self.packetOut) == 0 and self.timer:
+            self.timer.cancel()
+            self.timer = None
+            return
+        for x in packetList:
+            # print(f"Resending {x}!")
+            self.network_layer.send(x)
+        self.reset_timer(self.resend_packets, (packetList,))
 
     def from_app(self, binary_data):
         # Implement me!
-        number = len(self.packetTot)
+        number = self.next_pck_nr
+        self.next_pck_nr += 1
         checksum = self.checksum_calculation(binary_data)
         packet = Packet(binary_data, number, checksum)
         self.packetTot.append(packet)
@@ -69,68 +70,88 @@ class TransportLayer:
             self.packetBuffer.append(packet)
             
         if self.timer == None:
-            self.timer = self.reset_timer(self.send_packets, (self.packetOut,))
+            self.reset_timer(self.resend_packets, (self.packetOut,))
 
-    def from_network(self, packet):
-        # Implement me!
-        # print(f"{self.logger.name} has received {packet}!")
-        decoded_data = packet.data.decode()
+    def send_data_to_app(self):
+        for x in self.packetTot:
+            if self.packConfirmed == x.number:
+                self.packConfirmed += 1  
+                self.application_layer.receive_from_transport(x.data)
 
-        # If ACK from Bob
-        if decoded_data == 'ACK':
+    def data_packet(self, packet):
+        checksum = self.checksum_calculation(packet.data)
+           
+        # If data packet is OK, send to application and ACK back
+        if checksum == packet.checksum:
+            # If new packet, sends to application and ACK
+            if self.packConfirmed == packet.number:
+                # self.packetTot.append(packet) 
+                self.packConfirmed += 1  
+                print(f"{self.logger.name} has sendt {packet} to Application")
+                self.application_layer.receive_from_transport(packet.data)
+                ack = copy(packet)
+                ack.ACK = True
+                print(f"{self.logger.name} sends ACK for {packet}!")
+                self.network_layer.send(ack)
+            # If old packet, sends ACK    
+            elif self.packConfirmed > packet.number:
+                ack = copy(packet)
+                ack.ACK = True
+                print(f"{self.logger.name} sends ACK for {packet}!")
+                self.network_layer.send(ack)
+        
+        # Corrupted, sends a NACK back.     
+        else:
+            nack = copy(packet)
+            nack.ACK = False
+            print(f"{self.logger.name} sends NACK for {packet}!")
+            self.network_layer.send(nack)
+
+        ## For loop for sending packets to application. Must be in correct order!
+        # self.packetTot.sort(key=self.sortFunc)
+        # for x in self.packetTot:
+        #     if x.number == self.packConfirmed:
+        #         print(f"{self.logger.name} has sendt {x} to Application")
+        
+        #         self.packConfirmed += 1
+        #         self.application_layer.receive_from_transport(x.data)
+
+
+    # Alice function, ACK or NACK
+    def ack_or_nack(self, packet):
+        ## If ACK from Bob
+        if packet.ACK == True:
             for x in self.packetOut:
                 if x.number == packet.number: # Removes packet from memory
                     self.packetOut.remove(x)
                     self.packConfirmed += 1
-                    # print(f"{x} removed from {self.logger.name} packetOut list!")
+                    print(f"{self.logger.name} receives ACK packet {packet}!")
                     if len(self.packetBuffer) > 0:
                         for x in self.packetBuffer:
                             self.packetOut.append(x)
                             self.packetBuffer.remove(x)
-                            print(f"Added packet {x} to self.packetOut")
-                            print(f"Removed packet data {x} from self.packetBuffer")
-                    self.reset_timer(self.send_packets, (self.packetOut,)) # Resets timer
+                            print(f"{self.logger.name}Added packet {x} to self.packetOut")
+                            print(f"{self.logger.name}Removed packet data {x} from self.packetBuffer")
+                    # self.reset_timer(self.send_packets, (self.packetOut,)) # Resets timer
  
         # If NACK from Bob              
-        elif decoded_data == 'NACK': 
+        elif packet.ACK == False: 
              for x in self.packetOut:
                 if x.number == packet.number: # Removes packet from memory
                     self.network_layer.send(x) # Sends packet
+
+
+    def from_network(self, packet):
+        # Implement me!
+        self.send_data_to_app()
        
-        # If Data from Alice
-        else: 
-            checksum = self.checksum_calculation(packet.data)
-            if checksum == packet.checksum:
-                data_present = False
-                for x in self.packetTot:
-                    if x.number == packet.number:
-                        data_present = True
-                        break
-                if not data_present:
-                    self.packetTot.append(packet) # puts packet in list
-                 
-                ## Loop to send packets to application, packets must be in correct order!   
-                self.packetTot.sort(key=self.sortFunc)
-                for x in self.packetTot:
-                    if x.number == self.packConfirmed:
-                        print(f"{self.logger.name} has sendt {x} to Application")
-                        self.packConfirmed += 1
-                        self.application_layer.receive_from_transport(x.data)
-                        
-                # Acknowledgement packet send
-                data = b'ACK'
-                ack = Packet(data, packet.number, self.checksum_calculation(data))
-                # print(f"{self.logger.name} sends ACK for {packet}!")
-                self.network_layer.send(ack)
+        ## Checks if packet is data or an ACK/NACK
+        if packet.ACK == None:
+            self.data_packet(packet)
+        else:
+            self.ack_or_nack(packet)
 
-            else:
-                # Corrupted, sends a NACK back. 
-                data = b'NACK'
-                nack = Packet(data, packet.number, self.checksum_calculation(data))
-                # print(f"{self.logger.name} sends NACK for {packet}!")
-                self.network_layer.send(nack)
-
-
+    
 
 
     def reset_timer(self, callback, *args):
