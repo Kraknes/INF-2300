@@ -108,7 +108,8 @@ class TransportLayer:
                         break
                 if not data_present:
                     self.packetTot.append(packet) # puts packet in list
-                    
+                 
+                ## Loop to send packets to application, packets must be in correct order!   
                 self.packetTot.sort(key=self.sortFunc)
                 for x in self.packetTot:
                     if x.number == self.packConfirmed:
