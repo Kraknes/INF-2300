@@ -8,7 +8,7 @@ class Packet:
         # to have a functional packet.
         # TIPS: Add a __str__ method to print a packet-object nicely! :)
         self.data = binary_data
-
+        self.ACK = None
         # Extend me!
 
         self.number = number
