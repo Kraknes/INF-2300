@@ -75,21 +75,29 @@ class TransportLayer:
     def from_app(self, binary_data):
         packet = Packet(binary_data)
 
-        # Implement me!
-        self.prepare_packet(packet) # Adds checksum and numbers
+        # Prepares packet with checksum and number
+        self.prepare_packet(packet) 
 
+        # Adds packet to window, or buffer list
         if len(self.window) <= 5: # Window is size of 5
             self.window.append(packet)
-            print(f"{self.logger.name} has sent {packet}")
             self.network_layer.send(packet)
+            self.reset_timer(self.resend_packets)
         else:
             self.pack_buffer_list.append(packet)
 
-        self.reset_timer(self.resend_packets)
+        # Starts timer
 
     def from_network(self, packet):
 
+        # Adds from packet buffer list to window. 
+        ## Works only for Alice
+        while len(self.window) <= 5 and len(self.pack_buffer_list) > 0:
+            self.window.append(self.pack_buffer_list[0])
+            self.pack_buffer_list.pop(0)
+
         # Data packet received
+        ## Works only for Bob
         if packet.ACK == None:
 
             ## If an already processed package
@@ -99,36 +107,30 @@ class TransportLayer:
             
             ## If corrupted data
             if self.checksum_status(packet) == False:
-                print(f"{self.logger.name} sendt NACK for {packet}")
                 self.send_acknack(packet, False)
 
             ## If normal data
             elif self.checksum_status(packet) == True: 
                 if packet.number == self.pack_num:
-                    print(f"{self.logger.name} has received {packet}")
                     self.application_layer.receive_from_transport(packet.data)
                     self.pack_num += 1
-                    print(f"{self.logger.name} sendt ACK for {packet}")
                     self.send_acknack(packet, True)
     
         # ACK packet received
+        ## Works only for Alice
         elif packet.ACK == True:
             for x in self.window:
                 if x.number == packet.number:
                     self.window.remove(x)
-                    print(f"{self.logger.name} received ACK for {packet}")
+                    self.reset_timer(self.resend_packets)
 
         # NACK packet received
+        ## Works only for Alice
         elif packet.ACK == False:
             for x in self.window:
                 if x.number == packet.number:
                     self.network_layer.send(x)
-                    print(f"{self.logger.name} received NACK for {packet}")
 
-        # Adds from packet buffer list to window 
-        while len(self.window) <= 5 and len(self.pack_buffer_list) > 0:
-            self.window.append(self.pack_buffer_list[0])
-            self.pack_buffer_list.pop(0)
 
 
     def reset_timer(self, callback, *args):
