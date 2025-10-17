@@ -43,7 +43,6 @@ class TransportLayer:
     # Made by student
     ## Timer function to resend packets
     def resend_packets(self):
-        print(f"{self.logger.name} is resending packets")
         if len(self.window) == 0:
             self.timer.cancel()
             self.timer = None
@@ -58,11 +57,6 @@ class TransportLayer:
         ack = copy(packet)
         ack.ACK = bool
         self.network_layer.send(ack)
-
-    # # Made by student
-    # ## Sorting function based on item number
-    # def sortFunc(self, item):
-    #     return item.number
     
     # Made by student
     ## Sends boolean based on checksum
@@ -71,7 +65,15 @@ class TransportLayer:
             return True
         if packet.checksum != self.checksum_calculation(packet.data):
             return False
+        
+    # Made by student
+    ## Adds to list, sends, and reset timer
+    def send_pack(self, packet):
+        self.window.append(packet)
+        self.network_layer.send(packet)
+        self.reset_timer(self.resend_packets)
 
+    # Implemented by student
     def from_app(self, binary_data):
         packet = Packet(binary_data)
 
@@ -80,25 +82,37 @@ class TransportLayer:
 
         # Adds packet to window, or buffer list
         if len(self.window) <= 5: # Window is size of 5
-            self.window.append(packet)
-            self.network_layer.send(packet)
-            self.reset_timer(self.resend_packets)
+            self.send_pack(packet)
         else:
             self.pack_buffer_list.append(packet)
 
-        # Starts timer
-
+    # Implemented by student
     def from_network(self, packet):
 
-        # Adds from packet buffer list to window. 
-        ## Works only for Alice
+    # ----------------- Alice handling ------------------------- #
+
+        # Adds from packet buffer list to window, and sends
         while len(self.window) <= 5 and len(self.pack_buffer_list) > 0:
-            self.window.append(self.pack_buffer_list[0])
+            self.send_pack(self.pack_buffer_list[0])
             self.pack_buffer_list.pop(0)
 
+        # ACK packet received
+        if packet.ACK == True:
+            for x in self.window:
+                if x.number == packet.number:
+                    self.window.remove(x)
+                    self.reset_timer(self.resend_packets)
+
+        # NACK packet received
+        elif packet.ACK == False:
+            for x in self.window:
+                if x.number == packet.number:
+                    self.network_layer.send(x)
+
+    # ----------------- Bob handling ------------------------- #
+
         # Data packet received
-        ## Works only for Bob
-        if packet.ACK == None:
+        elif packet.ACK == None:
 
             ## If an already processed package
             if packet.number < self.pack_num: 
@@ -115,22 +129,6 @@ class TransportLayer:
                     self.application_layer.receive_from_transport(packet.data)
                     self.pack_num += 1
                     self.send_acknack(packet, True)
-    
-        # ACK packet received
-        ## Works only for Alice
-        elif packet.ACK == True:
-            for x in self.window:
-                if x.number == packet.number:
-                    self.window.remove(x)
-                    self.reset_timer(self.resend_packets)
-
-        # NACK packet received
-        ## Works only for Alice
-        elif packet.ACK == False:
-            for x in self.window:
-                if x.number == packet.number:
-                    self.network_layer.send(x)
-
 
 
     def reset_timer(self, callback, *args):

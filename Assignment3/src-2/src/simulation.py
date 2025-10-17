@@ -5,6 +5,7 @@ from logging import DEBUG as LOGGER_DEBUG
 from random import seed
 from sys import exit
 from signal import signal, SIGINT
+import time
 
 from config import PACKET_NUM, PACKET_SIZE, RANDOM_SEED, RANDOM_RUN
 from osi import OSIStack
@@ -49,9 +50,14 @@ class Sim:
             signal(SIGINT, sigint_handler)
 
 
+
 if __name__ == "__main__":
     if not RANDOM_RUN:
         seed(RANDOM_SEED)
     sim = Sim()
+    start_time = time.time()
     sim.run()
     print("Finished!")
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    print(f"The simulation took {elapsed_time}")

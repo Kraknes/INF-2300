@@ -8,23 +8,23 @@
 # Keep the number of packets low in the beginning
 
 # Number of packets per simulation
-PACKET_NUM = 40
+PACKET_NUM = 10
 
 # The size of each packet in bytes.
 # The data in each packet will be uppercase ASCII letters only!
-PACKET_SIZE = 7
+PACKET_SIZE = 4
 
 # The seed ensures a new run is identical to the last
 RANDOM_SEED = 84737869  # I love you! :)
 # If you don't want an identical run, set this to True
-RANDOM_RUN = True
+RANDOM_RUN = False
 
 # The chance that each packet is dropped
-DROP_CHANCE = 0.3
+DROP_CHANCE = 0.0
 # The chance that the data in a packet is changed
-CORRUPT_CHANCE = 0.3
+CORRUPT_CHANCE = 0.0
 
 # The chance that the packet is delayed
-DELAY_CHANCE = 0.3
+DELAY_CHANCE = 0.0
 # Delay in seconds
 DELAY_AMOUNT = 0.5

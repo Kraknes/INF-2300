@@ -9,9 +9,10 @@ class Packet:
         # TIPS: Add a __str__ method to print a packet-object nicely! :)
         # Extend me!
         self.data = binary_data
-        self.checksum = None
-        self.number = None
-        self.ACK = None
+        self.checksum = None # For corruption check
+        self.number = None # For in line check
+        self.ACK = None # If ACK or NACK (True or False)
         
+    # A sweet printer
     def __str__(self):
         return "Packet data: " + str(self.data) + ", Packet number: " + str(self.number)
